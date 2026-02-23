@@ -1,14 +1,22 @@
 import { useState, useMemo } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
-import { Search, Filter, ChevronDown, Eye } from 'lucide-react';
+import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X } from 'lucide-react';
 import { avatarColors } from '@/data/mockData';
 
 export function StudentList() {
-  const { students, getAttendanceRate, navigateToStudent } = useAttendance();
+  const { students, getAttendanceRate, navigateToStudent, addStudent, deleteStudent } = useAttendance();
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'department'>('name');
   const [showFilters, setShowFilters] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [newStudent, setNewStudent] = useState({
+    name: '',
+    email: '',
+    studentId: '',
+    department: '',
+    semester: 1
+  });
 
   const departments = useMemo(() => {
     return [...new Set(students.map(s => s.department))];
@@ -36,6 +44,13 @@ export function StudentList() {
     return result;
   }, [students, search, deptFilter, sortBy, getAttendanceRate]);
 
+  const handleAddStudent = (e: React.FormEvent) => {
+    e.preventDefault();
+    addStudent(newStudent);
+    setIsAddModalOpen(false);
+    setNewStudent({ name: '', email: '', studentId: '', department: '', semester: 1 });
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex items-center justify-between">
@@ -43,10 +58,17 @@ export function StudentList() {
           <h1 className="text-2xl font-bold text-slate-900">Students</h1>
           <p className="text-sm text-slate-500 mt-1">Manage and view student attendance records</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
           <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
             {filteredStudents.length} students
           </span>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          >
+            <Plus className="h-4 w-4" />
+            Add Student
+          </button>
         </div>
       </div>
 
@@ -65,9 +87,8 @@ export function StudentList() {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${
-              showFilters ? 'border-primary-300 bg-primary-50 text-primary-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-            }`}
+            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${showFilters ? 'border-primary-300 bg-primary-50 text-primary-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+              }`}
           >
             <Filter className="h-4 w-4" />
             Filters
@@ -149,27 +170,38 @@ export function StudentList() {
                       <div className="flex items-center gap-2">
                         <div className="w-16 h-1.5 bg-slate-100 rounded-full">
                           <div
-                            className={`h-full rounded-full progress-bar ${
-                              rate >= 75 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-red-500'
-                            }`}
+                            className={`h-full rounded-full progress-bar ${rate >= 75 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-red-500'
+                              }`}
                             style={{ width: `${rate}%` }}
                           />
                         </div>
-                        <span className={`text-xs font-semibold ${
-                          rate >= 75 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'
-                        }`}>
+                        <span className={`text-xs font-semibold ${rate >= 75 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'
+                          }`}>
                           {rate}%
                         </span>
                       </div>
                     </td>
                     <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => navigateToStudent(student.id)}
-                        className="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-100 transition-colors"
-                      >
-                        <Eye className="h-3.5 w-3.5" />
-                        View
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => navigateToStudent(student.id)}
+                          className="flex items-center gap-1.5 rounded-lg bg-primary-50 px-3 py-1.5 text-xs font-medium text-primary-600 hover:bg-primary-100 transition-colors"
+                        >
+                          <Eye className="h-3.5 w-3.5" />
+                          View
+                        </button>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to delete this student?')) {
+                              deleteStudent(student.id);
+                            }
+                          }}
+                          className="flex items-center justify-center h-8 w-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                          title="Delete Student"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -178,6 +210,98 @@ export function StudentList() {
           </table>
         </div>
       </div>
+
+      {/* Add Student Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
+            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <h3 className="text-lg font-bold text-slate-900">Add New Student</h3>
+              <button
+                onClick={() => setIsAddModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <form onSubmit={handleAddStudent} className="p-6 space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase">Full Name</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. John Doe"
+                  value={newStudent.name}
+                  onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Student ID</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. STU001"
+                    value={newStudent.studentId}
+                    onChange={e => setNewStudent({ ...newStudent, studentId: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Department</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. CS"
+                    value={newStudent.department}
+                    onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase">Email Address</label>
+                <input
+                  required
+                  type="email"
+                  placeholder="e.g. john@uni.edu"
+                  value={newStudent.email}
+                  onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="text-xs font-semibold text-slate-500 uppercase">Semester</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  max="8"
+                  value={newStudent.semester}
+                  onChange={e => setNewStudent({ ...newStudent, semester: parseInt(e.target.value) })}
+                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                />
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddModalOpen(false)}
+                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
+                >
+                  Create Student
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Student, Course, AttendanceRecord, Page } from '@/types';
 import { students as initialStudents, courses as initialCourses, attendanceRecords as initialRecords } from '@/data/mockData';
 import { format } from 'date-fns';
@@ -20,17 +21,51 @@ interface AttendanceContextType {
   getAttendanceRate: (studentId: string, courseId?: string) => number;
   getCourseAttendanceRate: (courseId: string) => number;
   navigateToStudent: (studentId: string) => void;
+  addStudent: (student: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => void;
+  deleteStudent: (studentId: string) => void;
+  addCourse: (course: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => void;
+  deleteCourse: (courseId: string) => void;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | null>(null);
 
 export function AttendanceProvider({ children }: { children: ReactNode }) {
-  const [students] = useState<Student[]>(initialStudents);
-  const [courses] = useState<Course[]>(initialCourses);
+  const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [courses, setCourses] = useState<Course[]>(initialCourses);
   const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const addStudent = useCallback((newStudent: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => {
+    setStudents(prev => [...prev, {
+      ...newStudent,
+      id: `S-${String(prev.length + 1).padStart(5, '0')}`,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newStudent.name}`,
+      enrolledCourses: []
+    }]);
+  }, []);
+
+  const deleteStudent = useCallback((studentId: string) => {
+    setStudents(prev => prev.filter(s => s.id !== studentId));
+    setRecords(prev => prev.filter(r => r.studentId !== studentId));
+  }, []);
+
+  const addCourse = useCallback((newCourse: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => {
+    const colors = ['indigo', 'blue', 'rose', 'amber', 'emerald'];
+    setCourses(prev => [...prev, {
+      ...newCourse,
+      id: `C-${String(prev.length + 1).padStart(5, '0')}`,
+      enrolledStudents: [],
+      color: colors[prev.length % colors.length]
+    }]);
+  }, []);
+
+  const deleteCourse = useCallback((courseId: string) => {
+    setCourses(prev => prev.filter(c => c.id !== courseId));
+    setRecords(prev => prev.filter(r => r.courseId !== courseId));
+  }, []);
 
   const markAttendance = useCallback((studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => {
     setRecords(prev => {
@@ -81,8 +116,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
 
   const navigateToStudent = useCallback((studentId: string) => {
     setSelectedStudentId(studentId);
-    setCurrentPage('student-detail');
-  }, []);
+    navigate(`/students/${studentId}`);
+  }, [navigate]);
 
   const today = format(new Date(), 'yyyy-MM-dd');
   void today;
@@ -105,6 +140,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       getAttendanceRate,
       getCourseAttendanceRate,
       navigateToStudent,
+      addStudent,
+      deleteStudent,
+      addCourse,
+      deleteCourse,
     }}>
       {children}
     </AttendanceContext.Provider>

@@ -1,4 +1,4 @@
-import { AttendanceProvider, useAttendance } from '@/context/AttendanceContext';
+import { AttendanceProvider } from '@/context/AttendanceContext';
 import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentList } from '@/components/StudentList';
@@ -8,38 +8,49 @@ import { AttendanceReport } from '@/components/AttendanceReport';
 import { StudentDetail } from '@/components/StudentDetail';
 import { Bell, Search } from 'lucide-react';
 import { format } from 'date-fns';
+import { Routes, Route, useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 
 function PageRenderer() {
-  const { currentPage } = useAttendance();
+  const location = useLocation();
 
-  switch (currentPage) {
-    case 'dashboard':
-      return <Dashboard />;
-    case 'students':
-      return <StudentList />;
-    case 'courses':
-      return <CourseList />;
-    case 'mark-attendance':
-      return <AttendanceMarker />;
-    case 'reports':
-      return <AttendanceReport />;
-    case 'student-detail':
-      return <StudentDetail />;
-    default:
-      return <Dashboard />;
-  }
+  return (
+    <AnimatePresence mode="wait">
+      <motion.div
+        key={location.pathname}
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -10 }}
+        transition={{ duration: 0.2 }}
+      >
+        <Routes location={location}>
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/students" element={<StudentList />} />
+          <Route path="/students/:id" element={<StudentDetail />} />
+          <Route path="/courses" element={<CourseList />} />
+          <Route path="/mark-attendance" element={<AttendanceMarker />} />
+          <Route path="/reports" element={<AttendanceReport />} />
+          <Route path="*" element={<Dashboard />} />
+        </Routes>
+      </motion.div>
+    </AnimatePresence>
+  );
 }
 
 function TopBar() {
-  const { currentPage } = useAttendance();
+  const location = useLocation();
 
   const pageTitle: Record<string, string> = {
-    dashboard: 'Dashboard',
-    students: 'Students',
-    courses: 'Courses',
-    'mark-attendance': 'Mark Attendance',
-    reports: 'Reports',
-    'student-detail': 'Student Detail',
+    '/': 'Dashboard',
+    '/students': 'Students',
+    '/courses': 'Courses',
+    '/mark-attendance': 'Mark Attendance',
+    '/reports': 'Reports',
+  };
+
+  const getTitle = () => {
+    if (location.pathname.startsWith('/students/')) return 'Student Detail';
+    return pageTitle[location.pathname] || 'Dashboard';
   };
 
   return (
@@ -50,7 +61,7 @@ function TopBar() {
             <nav className="text-xs text-slate-400">
               <span>UniTrack</span>
               <span className="mx-1.5">/</span>
-              <span className="text-slate-600 font-medium">{pageTitle[currentPage] || 'Dashboard'}</span>
+              <span className="text-slate-600 font-medium">{getTitle()}</span>
             </nav>
           </div>
         </div>

@@ -1,5 +1,4 @@
-import { useAttendance } from '@/context/AttendanceContext';
-import { Page } from '@/types';
+import { NavLink } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
@@ -12,23 +11,21 @@ import {
 } from 'lucide-react';
 import { useState } from 'react';
 
-const navItems: { page: Page; label: string; icon: typeof LayoutDashboard }[] = [
-  { page: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { page: 'students', label: 'Students', icon: Users },
-  { page: 'courses', label: 'Courses', icon: BookOpen },
-  { page: 'mark-attendance', label: 'Mark Attendance', icon: ClipboardCheck },
-  { page: 'reports', label: 'Reports', icon: BarChart3 },
+const navItems = [
+  { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+  { path: '/students', label: 'Students', icon: Users },
+  { path: '/courses', label: 'Courses', icon: BookOpen },
+  { path: '/mark-attendance', label: 'Mark Attendance', icon: ClipboardCheck },
+  { path: '/reports', label: 'Reports', icon: BarChart3 },
 ];
 
 export function Sidebar() {
-  const { currentPage, setCurrentPage } = useAttendance();
   const [collapsed, setCollapsed] = useState(false);
 
   return (
     <aside
-      className={`fixed left-0 top-0 z-50 flex h-full flex-col bg-white border-r border-slate-200 shadow-sm transition-all duration-300 ${
-        collapsed ? 'w-[72px]' : 'w-64'
-      }`}
+      className={`fixed left-0 top-0 z-50 flex h-full flex-col bg-white border-r border-slate-200 shadow-sm transition-all duration-300 ${collapsed ? 'w-[72px]' : 'w-64'
+        }`}
     >
       {/* Logo */}
       <div className="flex items-center gap-3 px-5 py-6 border-b border-slate-100">
@@ -45,27 +42,28 @@ export function Sidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {navItems.map(({ page, label, icon: Icon }) => {
-          const isActive = currentPage === page || (currentPage === 'student-detail' && page === 'students');
-          return (
-            <button
-              key={page}
-              onClick={() => setCurrentPage(page)}
-              className={`group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${
-                isActive
-                  ? 'bg-primary-50 text-primary-700 shadow-sm sidebar-active'
-                  : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
-              }`}
-            >
-              <Icon
-                className={`h-5 w-5 shrink-0 transition-colors ${
-                  isActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600'
-                }`}
-              />
-              {!collapsed && <span>{label}</span>}
-            </button>
-          );
-        })}
+        {navItems.map(({ path, label, icon: Icon }) => (
+          <NavLink
+            key={path}
+            to={path}
+            className={({ isActive }) =>
+              `group flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-200 ${isActive
+                ? 'bg-primary-50 text-primary-700 shadow-sm sidebar-active'
+                : 'text-slate-500 hover:bg-slate-50 hover:text-slate-700'
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <Icon
+                  className={`h-5 w-5 shrink-0 transition-colors ${isActive ? 'text-primary-600' : 'text-slate-400 group-hover:text-slate-600'
+                    }`}
+                />
+                {!collapsed && <span>{label}</span>}
+              </>
+            )}
+          </NavLink>
+        ))}
       </nav>
 
       {/* Collapse toggle */}
@@ -80,8 +78,4 @@ export function Sidebar() {
       </div>
     </aside>
   );
-}
-
-export function useSidebarWidth() {
-  return 'ml-64';
 }
