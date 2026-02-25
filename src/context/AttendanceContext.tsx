@@ -25,6 +25,8 @@ interface AttendanceContextType {
   deleteStudent: (studentId: string) => Promise<void>;
   addCourse: (course: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => Promise<void>;
   deleteCourse: (courseId: string) => Promise<void>;
+  enrollStudentInCourse: (studentId: string, courseId: string) => Promise<void>;
+  unenrollStudentFromCourse: (studentId: string, courseId: string) => Promise<void>;
   refreshData: () => Promise<void>;
   error: string | null;
   clearError: () => void;
@@ -179,6 +181,49 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const enrollStudentInCourse = useCallback(async (studentId: string, courseId: string) => {
+    try {
+      await dbService.addEnrolment(studentId, courseId);
+      setStudents(prev => prev.map(s => {
+        if (s.id === studentId) {
+          return { ...s, enrolledCourses: [...(s.enrolledCourses || []), courseId] };
+        }
+        return s;
+      }));
+      setCourses(prev => prev.map(c => {
+        if (c.id === courseId) {
+          return { ...c, enrolledStudents: [...(c.enrolledStudents || []), studentId] };
+        }
+        return c;
+      }));
+    } catch (err) {
+      console.error('Failed to enroll student:', err);
+      setError('Failed to enroll student in the course.');
+    }
+  }, []);
+
+  const unenrollStudentFromCourse = useCallback(async (studentId: string, courseId: string) => {
+    try {
+      await dbService.removeEnrolment(studentId, courseId);
+      setStudents(prev => prev.map(s => {
+        if (s.id === studentId) {
+          return { ...s, enrolledCourses: (s.enrolledCourses || []).filter(id => id !== courseId) };
+        }
+        return s;
+      }));
+      setCourses(prev => prev.map(c => {
+        if (c.id === courseId) {
+          return { ...c, enrolledStudents: (c.enrolledStudents || []).filter(id => id !== studentId) };
+        }
+        return c;
+      }));
+    } catch (err) {
+      console.error('Failed to unenroll student:', err);
+      setError('Failed to unenroll student from the course.');
+    }
+  }, []);
+
+
   const markAttendance = useCallback(async (studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => {
     const newRecord: AttendanceRecord = {
       id: `ATT-${String(records.length + 1).padStart(5, '0')}`,
@@ -275,6 +320,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       deleteStudent,
       addCourse,
       deleteCourse,
+      enrollStudentInCourse,
+      unenrollStudentFromCourse,
       refreshData,
       error,
       clearError,

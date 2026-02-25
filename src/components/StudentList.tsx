@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
 import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X } from 'lucide-react';
 import { avatarColors } from '@/constants/ui';
@@ -45,6 +45,13 @@ export function StudentList() {
     return result;
   }, [students, search, deptFilter, sortBy, getAttendanceRate]);
 
+  const handleAddStudent = useCallback((e: React.FormEvent) => {
+    e.preventDefault();
+    addStudent(newStudent);
+    setIsAddModalOpen(false);
+    setNewStudent({ name: '', email: '', studentId: '', department: '', semester: 1 });
+  }, [addStudent, newStudent]);
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
@@ -56,37 +63,31 @@ export function StudentList() {
     );
   }
 
-  const handleAddStudent = (e: React.FormEvent) => {
-    e.preventDefault();
-    addStudent(newStudent);
-    setIsAddModalOpen(false);
-    setNewStudent({ name: '', email: '', studentId: '', department: '', semester: 1 });
-  };
-
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Students</h1>
-          <p className="text-sm text-slate-500 mt-1">Manage and view student attendance records</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Students</h1>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">Manage and view student attendance records</p>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full">
+        <div className="flex items-center justify-between sm:justify-end gap-3">
+          <span className="text-[10px] md:text-xs font-medium text-slate-400 bg-slate-100 px-3 py-1.5 rounded-full shrink-0">
             {filteredStudents.length} students
           </span>
           <button
             onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
+            className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
-            Add Student
+            <span className="hidden xs:inline">Add Student</span>
+            <span className="xs:hidden">Add</span>
           </button>
         </div>
       </div>
 
       {/* Search & Filters */}
       <div className="space-y-3">
-        <div className="flex gap-3">
+        <div className="flex flex-col xs:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
@@ -99,21 +100,21 @@ export function StudentList() {
           </div>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${showFilters ? 'border-primary-300 bg-primary-50 text-primary-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+            className={`flex items-center justify-center gap-2 rounded-xl border px-4 py-2.5 text-sm font-medium transition-all ${showFilters ? 'border-primary-300 bg-primary-50 text-primary-600' : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
               }`}
           >
             <Filter className="h-4 w-4" />
-            Filters
+            <span>Filters</span>
             <ChevronDown className={`h-3 w-3 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
           </button>
         </div>
 
         {showFilters && (
-          <div className="flex gap-3 animate-slide-in-up">
+          <div className="flex flex-col xs:flex-row gap-3 animate-slide-in-up">
             <select
               value={deptFilter}
               onChange={e => setDeptFilter(e.target.value)}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none"
             >
               <option value="all">All Departments</option>
               {departments.map(d => (
@@ -123,7 +124,7 @@ export function StudentList() {
             <select
               value={sortBy}
               onChange={e => setSortBy(e.target.value as 'name' | 'attendance' | 'department')}
-              className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none"
+              className="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none"
             >
               <option value="name">Sort by Name</option>
               <option value="attendance">Sort by Attendance</option>

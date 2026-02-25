@@ -20,8 +20,12 @@ export function AttendanceReport() {
   const [dateRange, setDateRange] = useState<'7' | '14' | '30'>('14');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
 
-  const startDate = subDays(new Date(), parseInt(dateRange));
-  const endDate = new Date();
+  const { startDate, endDate } = useMemo(() => {
+    return {
+      startDate: subDays(new Date(), parseInt(dateRange)),
+      endDate: new Date()
+    };
+  }, [dateRange]);
 
   const filteredRecords = useMemo(() => {
     return records.filter(r => {
@@ -78,17 +82,6 @@ export function AttendanceReport() {
     return report.sort((a, b) => b.rate - a.rate);
   }, [students, filteredRecords]);
 
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Generating reports...</p>
-        </div>
-      </div>
-    );
-  }
-
   const handleExport = () => {
     const header = 'Name,Student ID,Department,Present,Absent,Late,Excused,Total,Rate\n';
     const rows = studentReport.map(s =>
@@ -103,16 +96,27 @@ export function AttendanceReport() {
     URL.revokeObjectURL(url);
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Generating reports...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Attendance Reports</h1>
           <p className="text-sm text-slate-500 mt-1">Analyze attendance patterns and generate reports</p>
         </div>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-primary-700 transition-colors shadow-sm shadow-primary-200"
+          className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-xl bg-primary-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-primary-700 transition-colors shadow-sm shadow-primary-200"
         >
           <Download className="h-4 w-4" />
           Export CSV
@@ -120,46 +124,48 @@ export function AttendanceReport() {
       </div>
 
       {/* Filters */}
-      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-4 sm:p-5">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-4">
           <div className="flex items-center gap-2">
             <Filter className="h-4 w-4 text-slate-400" />
             <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filters</span>
           </div>
-          <select
-            value={selectedCourse}
-            onChange={e => setSelectedCourse(e.target.value)}
-            className="rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 outline-none"
-          >
-            <option value="all">All Courses</option>
-            {courses.map(c => (
-              <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
-            ))}
-          </select>
-          <div className="flex rounded-xl border border-slate-200 overflow-hidden">
-            {(['7', '14', '30'] as const).map(range => (
-              <button
-                key={range}
-                onClick={() => setDateRange(range)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-colors ${dateRange === range ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-                  }`}
-              >
-                <Calendar className="h-3 w-3" />
-                {range}d
-              </button>
-            ))}
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <select
+              value={selectedCourse}
+              onChange={e => setSelectedCourse(e.target.value)}
+              className="flex-1 min-w-[160px] rounded-xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 focus:border-primary-400 outline-none"
+            >
+              <option value="all">All Courses</option>
+              {courses.map(c => (
+                <option key={c.id} value={c.id}>{c.code} - {c.name}</option>
+              ))}
+            </select>
+            <div className="flex rounded-xl border border-slate-200 overflow-hidden">
+              {(['7', '14', '30'] as const).map(range => (
+                <button
+                  key={range}
+                  onClick={() => setDateRange(range)}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-colors ${dateRange === range ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                >
+                  <Calendar className="h-3 w-3" />
+                  {range}d
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="flex rounded-xl border border-slate-200 overflow-hidden ml-auto">
+          <div className="flex rounded-xl border border-slate-200 overflow-hidden sm:ml-auto">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-3.5 py-2 text-xs font-medium transition-colors ${viewMode === 'chart' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 text-xs font-medium transition-colors ${viewMode === 'chart' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
                 }`}
             >
-              <BarChart3 className="h-3.5 w-3.5" />
+              <BarChart3 className="h-4 w-4" />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3.5 py-2 text-xs font-medium transition-colors ${viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+              className={`flex-1 sm:flex-none flex items-center justify-center px-4 py-2 text-xs font-medium transition-colors ${viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
                 }`}
             >
               Table
@@ -169,15 +175,15 @@ export function AttendanceReport() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         {[
-          { label: 'Total Records', value: summary.total, color: 'text-slate-900' },
+          { label: 'Total Records', value: summary.total, color: 'text-slate-900', fullWidth: true },
           { label: 'Present', value: summary.present, color: 'text-emerald-600' },
           { label: 'Absent', value: summary.absent, color: 'text-red-600' },
           { label: 'Late', value: summary.late, color: 'text-amber-600' },
-          { label: 'Overall Rate', value: `${summary.rate}%`, color: summary.rate >= 75 ? 'text-emerald-600' : 'text-red-600' },
+          { label: 'Rate', value: `${summary.rate}%`, color: summary.rate >= 75 ? 'text-emerald-600' : 'text-red-600' },
         ].map(s => (
-          <div key={s.label} className="rounded-xl bg-white border border-slate-100 p-4 shadow-sm text-center">
+          <div key={s.label} className={`rounded-xl bg-white border border-slate-100 p-4 shadow-sm text-center ${s.fullWidth ? 'col-span-2 lg:col-span-1' : ''}`}>
             <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
             <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">{s.label}</p>
           </div>

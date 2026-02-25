@@ -41,21 +41,21 @@ export function CourseList() {
 
   return (
     <div className="space-y-6 animate-fade-in">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900">Courses</h1>
-          <p className="text-sm text-slate-500 mt-1">View all courses and their attendance statistics</p>
+          <h1 className="text-xl md:text-2xl font-bold text-slate-900">Courses</h1>
+          <p className="text-xs md:text-sm text-slate-500 mt-1">View all courses and their attendance statistics</p>
         </div>
         <button
           onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98]"
+          className="flex items-center justify-center gap-2 rounded-xl bg-primary-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all hover:scale-[1.02] active:scale-[0.98] w-full sm:w-auto"
         >
           <Plus className="h-4 w-4" />
           Add Course
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
         {courses.map((course, i) => {
           const rate = getCourseAttendanceRate(course.id);
           return (
@@ -66,58 +66,58 @@ export function CourseList() {
               {/* Color bar */}
               <div className="h-1.5" style={{ background: course.color }} />
 
-              <div className="p-5">
+              <div className="p-4 md:p-5">
                 <div className="flex items-start justify-between mb-3">
-                  <div>
-                    <span className="text-xs font-bold text-slate-400 tracking-wider">{course.code}</span>
-                    <h3 className="text-sm font-semibold text-slate-900 mt-0.5 leading-snug">{course.name}</h3>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <span className="text-[10px] md:text-xs font-bold text-slate-400 tracking-wider truncate block">{course.code}</span>
+                    <h3 className="text-sm font-semibold text-slate-900 mt-0.5 leading-snug truncate">{course.name}</h3>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => {
                         if (window.confirm('Are you sure you want to delete this course?')) {
                           deleteCourse(course.id);
                         }
                       }}
-                      className="hidden group-hover:flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
+                      className="flex lg:hidden lg:group-hover:flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                       title="Delete Course"
                     >
                       <Trash2 className="h-3.5 w-3.5" />
                     </button>
                     <div
-                      className="flex h-10 w-10 items-center justify-center rounded-xl shrink-0"
+                      className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl shrink-0"
                       style={{ background: `${course.color}15`, color: course.color }}
                     >
-                      <BookOpen className="h-5 w-5" />
+                      <BookOpen className="h-4 w-4 md:h-5 md:w-5" />
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-2 mb-4">
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Users className="h-3.5 w-3.5" />
-                    <span>{course.enrolledStudents?.length || 0} students enrolled</span>
+                  <div className="flex items-center gap-2 text-[11px] md:text-xs text-slate-500">
+                    <Users className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{course.enrolledStudents?.length || 0} students enrolled</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{course.schedule}</span>
+                  <div className="flex items-center gap-2 text-[11px] md:text-xs text-slate-500">
+                    <Clock className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{course.schedule}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-xs text-slate-500">
-                    <TrendingUp className="h-3.5 w-3.5" />
-                    <span>{course.instructor}</span>
+                  <div className="flex items-center gap-2 text-[11px] md:text-xs text-slate-500">
+                    <TrendingUp className="h-3.5 w-3.5 shrink-0" />
+                    <span className="truncate">{course.instructor}</span>
                   </div>
                 </div>
 
                 {/* Attendance Rate */}
                 <div className="mb-4">
                   <div className="flex items-center justify-between mb-1.5">
-                    <span className="text-xs text-slate-400">Attendance Rate</span>
-                    <span className={`text-xs font-bold ${rate >= 75 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'
+                    <span className="text-[10px] md:text-xs text-slate-400">Attendance Rate</span>
+                    <span className={`text-[10px] md:text-xs font-bold ${rate >= 75 ? 'text-emerald-600' : rate >= 60 ? 'text-amber-600' : 'text-red-600'
                       }`}>
                       {rate}%
                     </span>
                   </div>
-                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div className="w-full h-1.5 md:h-2 bg-slate-100 rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full progress-bar transition-all duration-1000 ${rate >= 75 ? 'bg-emerald-500' : rate >= 60 ? 'bg-amber-500' : 'bg-red-500'
                         }`}
@@ -133,6 +133,12 @@ export function CourseList() {
                     style={{ background: course.color }}
                   >
                     Mark Attendance
+                  </button>
+                  <button
+                    onClick={() => navigate(`/courses/${course.id}`)}
+                    className="flex-1 rounded-xl py-2 text-xs font-semibold text-slate-600 bg-slate-50 border border-slate-100 transition-all hover:bg-slate-100"
+                  >
+                    View Details
                   </button>
                 </div>
               </div>

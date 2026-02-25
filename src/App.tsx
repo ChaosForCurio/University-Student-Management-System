@@ -3,14 +3,16 @@ import { Sidebar } from '@/components/Sidebar';
 import { Dashboard } from '@/components/Dashboard';
 import { StudentList } from '@/components/StudentList';
 import { CourseList } from '@/components/CourseList';
+import { CourseDetail } from '@/components/CourseDetail';
 import { AttendanceMarker } from '@/components/AttendanceMarker';
 import { AttendanceReport } from '@/components/AttendanceReport';
 import { StudentDetail } from '@/components/StudentDetail';
-import { Bell, Search } from 'lucide-react';
+import { Bell, Search, Menu } from 'lucide-react';
 import { format } from 'date-fns';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
 import { ErrorBanner } from '@/components/ErrorBanner';
+import { useState } from 'react';
 
 function PageRenderer() {
   const location = useLocation();
@@ -29,6 +31,7 @@ function PageRenderer() {
           <Route path="/students" element={<StudentList />} />
           <Route path="/students/:id" element={<StudentDetail />} />
           <Route path="/courses" element={<CourseList />} />
+          <Route path="/courses/:id" element={<CourseDetail />} />
           <Route path="/mark-attendance" element={<AttendanceMarker />} />
           <Route path="/reports" element={<AttendanceReport />} />
           <Route path="*" element={<Dashboard />} />
@@ -38,7 +41,11 @@ function PageRenderer() {
   );
 }
 
-function TopBar() {
+interface TopBarProps {
+  onMenuClick: () => void;
+}
+
+function TopBar({ onMenuClick }: TopBarProps) {
   const location = useLocation();
 
   const pageTitle: Record<string, string> = {
@@ -56,25 +63,34 @@ function TopBar() {
 
   return (
     <header className="sticky top-0 z-40 glass border-b border-slate-200/50">
-      <div className="flex items-center justify-between px-6 py-3">
-        <div className="flex items-center gap-4">
-          <div>
-            <nav className="text-xs text-slate-400">
+      <div className="flex items-center justify-between px-4 md:px-6 py-3">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onMenuClick}
+            className="lg:hidden p-2 rounded-xl border border-slate-200 bg-white shadow-sm text-slate-500 hover:bg-slate-50 transition-colors"
+          >
+            <Menu className="h-5 w-5" />
+          </button>
+          <div className="hidden sm:block">
+            <nav className="text-[10px] md:text-xs text-slate-400">
               <span>UniTrack</span>
               <span className="mx-1.5">/</span>
               <span className="text-slate-600 font-medium">{getTitle()}</span>
             </nav>
           </div>
+          <div className="sm:hidden text-sm font-bold text-slate-900 truncate max-w-[120px]">
+            {getTitle()}
+          </div>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           {/* Search */}
-          <div className="relative hidden md:block">
+          <div className="relative hidden xl:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
             <input
               type="text"
               placeholder="Quick search..."
-              className="w-56 rounded-xl border border-slate-200 bg-white/80 pl-9 pr-4 py-2 text-sm placeholder:text-slate-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+              className="w-48 xl:w-56 rounded-xl border border-slate-200 bg-white/80 pl-9 pr-4 py-2 text-sm placeholder:text-slate-400 focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
             />
           </div>
 
@@ -92,13 +108,13 @@ function TopBar() {
           </div>
 
           {/* User Avatar */}
-          <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/80 px-3 py-1.5">
+          <div className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white/80 px-1.5 py-1.5 md:px-3">
             <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-gradient-to-br from-primary-500 to-primary-700 text-white text-xs font-bold">
               AD
             </div>
-            <div className="hidden md:block">
-              <p className="text-xs font-semibold text-slate-700">Admin</p>
-              <p className="text-[10px] text-slate-400">admin@uni.edu</p>
+            <div className="hidden md:block text-left">
+              <p className="text-xs font-semibold text-slate-700 leading-tight">Admin</p>
+              <p className="text-[10px] text-slate-400 leading-tight">admin@uni.edu</p>
             </div>
           </div>
         </div>
@@ -108,13 +124,15 @@ function TopBar() {
 }
 
 function AppLayout() {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
-      <Sidebar />
-      <div className="ml-64 transition-all duration-300">
+      <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+      <div className="lg:ml-64 transition-all duration-300">
         <ErrorBanner />
-        <TopBar />
-        <main className="p-6">
+        <TopBar onMenuClick={() => setSidebarOpen(true)} />
+        <main className="p-4 md:p-6">
           <PageRenderer />
         </main>
       </div>

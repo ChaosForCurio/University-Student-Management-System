@@ -109,12 +109,12 @@ export function StudentDetail() {
   const colorIdx = students.indexOf(student);
   const avatarColor = avatarColors[colorIdx % avatarColors.length];
 
-  const statusCounts = {
+  const statusCounts = useMemo(() => ({
     present: studentRecords.filter(r => r.status === 'present').length,
     absent: studentRecords.filter(r => r.status === 'absent').length,
     late: studentRecords.filter(r => r.status === 'late').length,
     excused: studentRecords.filter(r => r.status === 'excused').length,
-  };
+  }), [studentRecords]);
 
   return (
     <div className="space-y-6 animate-fade-in">

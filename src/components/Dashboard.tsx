@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
 import { format, subDays } from 'date-fns';
 import {
@@ -40,102 +41,124 @@ export function Dashboard() {
     );
   }
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  const todayRecords = records.filter(r => r.date === today);
-  const todayPresent = todayRecords.filter(r => r.status === 'present').length;
-  const todayAbsent = todayRecords.filter(r => r.status === 'absent').length;
-  const todayLate = todayRecords.filter(r => r.status === 'late').length;
-  const todayTotal = todayRecords.length || 1;
+  const {
+    todayPresent,
+    todayAbsent,
+    todayLate,
+    weeklyData,
+    courseRates,
+    statusData,
+    lowAttendance,
+    stats
+  } = useMemo(() => {
+    const today = format(new Date(), 'yyyy-MM-dd');
+    const todayRecords = records.filter(r => r.date === today);
+    const tPresent = todayRecords.filter(r => r.status === 'present').length;
+    const tAbsent = todayRecords.filter(r => r.status === 'absent').length;
+    const tLate = todayRecords.filter(r => r.status === 'late').length;
+    const tTotal = todayRecords.length || 1;
 
-  // Weekly trend data
-  const weeklyData = Array.from({ length: 14 }, (_, i) => {
-    const date = subDays(new Date(), 13 - i);
-    const dayOfWeek = date.getDay();
-    if (dayOfWeek === 0 || dayOfWeek === 6) return null;
-    const dateStr = format(date, 'yyyy-MM-dd');
-    const dayRecords = records.filter(r => r.date === dateStr);
-    const present = dayRecords.filter(r => r.status === 'present' || r.status === 'late').length;
-    const total = dayRecords.length || 1;
+    // Weekly trend data
+    const wData = Array.from({ length: 14 }, (_, i) => {
+      const date = subDays(new Date(), 13 - i);
+      const dayOfWeek = date.getDay();
+      if (dayOfWeek === 0 || dayOfWeek === 6) return null;
+      const dateStr = format(date, 'yyyy-MM-dd');
+      const dayRecords = records.filter(r => r.date === dateStr);
+      const present = dayRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+      const total = dayRecords.length || 1;
+      return {
+        date: format(date, 'MMM dd'),
+        rate: Math.round((present / total) * 100),
+        present: dayRecords.filter(r => r.status === 'present').length,
+        absent: dayRecords.filter(r => r.status === 'absent').length,
+      };
+    }).filter(Boolean);
+
+    // Course attendance rates
+    const cRates = courses.map(c => ({
+      name: c.code,
+      rate: getCourseAttendanceRate(c.id),
+      color: c.color,
+      fullName: c.name,
+    })).sort((a, b) => b.rate - a.rate);
+
+    // Status distribution
+    const sData = [
+      { name: 'Present', value: records.filter(r => r.status === 'present').length, color: '#22c55e' },
+      { name: 'Absent', value: records.filter(r => r.status === 'absent').length, color: '#ef4444' },
+      { name: 'Late', value: records.filter(r => r.status === 'late').length, color: '#f59e0b' },
+      { name: 'Excused', value: records.filter(r => r.status === 'excused').length, color: '#3b82f6' },
+    ];
+
+    // Average attendance
+    const allPresent = records.filter(r => r.status === 'present' || r.status === 'late').length;
+    const avgAttendanceVal = Math.round((allPresent / (records.length || 1)) * 100);
+
+    // Low attendance students
+    const studentAttendance = students.map(s => {
+      const sRecords = records.filter(r => r.studentId === s.id);
+      const present = sRecords.filter(r => r.status === 'present' || r.status === 'late').length;
+      const rate = sRecords.length > 0 ? Math.round((present / sRecords.length) * 100) : 0;
+      return { ...s, rate, totalRecords: sRecords.length };
+    }).sort((a, b) => a.rate - b.rate);
+
+    const lAttendance = studentAttendance.filter(s => s.rate < 75).slice(0, 5);
+
+    const statsArr = [
+      {
+        label: 'Total Students',
+        value: students.length,
+        icon: Users,
+        color: 'from-primary-500 to-primary-600',
+        bgColor: 'bg-primary-50',
+        textColor: 'text-primary-600',
+        change: '+3',
+        up: true,
+      },
+      {
+        label: 'Active Courses',
+        value: courses.length,
+        icon: BookOpen,
+        color: 'from-purple-500 to-purple-600',
+        bgColor: 'bg-purple-50',
+        textColor: 'text-purple-600',
+        change: '+1',
+        up: true,
+      },
+      {
+        label: 'Avg Attendance',
+        value: `${avgAttendanceVal}%`,
+        icon: TrendingUp,
+        color: 'from-emerald-500 to-emerald-600',
+        bgColor: 'bg-emerald-50',
+        textColor: 'text-emerald-600',
+        change: '+2.5%',
+        up: true,
+      },
+      {
+        label: 'Today Present',
+        value: `${Math.round((tPresent / tTotal) * 100)}%`,
+        icon: Activity,
+        color: 'from-amber-500 to-orange-500',
+        bgColor: 'bg-amber-50',
+        textColor: 'text-amber-600',
+        change: '-1.2%',
+        up: false,
+      },
+    ];
+
     return {
-      date: format(date, 'MMM dd'),
-      rate: Math.round((present / total) * 100),
-      present: dayRecords.filter(r => r.status === 'present').length,
-      absent: dayRecords.filter(r => r.status === 'absent').length,
+      todayPresent: tPresent,
+      todayAbsent: tAbsent,
+      todayLate: tLate,
+      weeklyData: wData,
+      courseRates: cRates,
+      statusData: sData,
+      lowAttendance: lAttendance,
+      stats: statsArr
     };
-  }).filter(Boolean);
-
-  // Course attendance rates
-  const courseRates = courses.map(c => ({
-    name: c.code,
-    rate: getCourseAttendanceRate(c.id),
-    color: c.color,
-    fullName: c.name,
-  })).sort((a, b) => b.rate - a.rate);
-
-  // Status distribution
-  const statusData = [
-    { name: 'Present', value: records.filter(r => r.status === 'present').length, color: '#22c55e' },
-    { name: 'Absent', value: records.filter(r => r.status === 'absent').length, color: '#ef4444' },
-    { name: 'Late', value: records.filter(r => r.status === 'late').length, color: '#f59e0b' },
-    { name: 'Excused', value: records.filter(r => r.status === 'excused').length, color: '#3b82f6' },
-  ];
-
-  // Average attendance
-  const allPresent = records.filter(r => r.status === 'present' || r.status === 'late').length;
-  const avgAttendance = Math.round((allPresent / (records.length || 1)) * 100);
-
-  // Low attendance students
-  const studentAttendance = students.map(s => {
-    const sRecords = records.filter(r => r.studentId === s.id);
-    const present = sRecords.filter(r => r.status === 'present' || r.status === 'late').length;
-    const rate = sRecords.length > 0 ? Math.round((present / sRecords.length) * 100) : 0;
-    return { ...s, rate, totalRecords: sRecords.length };
-  }).sort((a, b) => a.rate - b.rate);
-
-  const lowAttendance = studentAttendance.filter(s => s.rate < 75).slice(0, 5);
-
-  const stats = [
-    {
-      label: 'Total Students',
-      value: students.length,
-      icon: Users,
-      color: 'from-primary-500 to-primary-600',
-      bgColor: 'bg-primary-50',
-      textColor: 'text-primary-600',
-      change: '+3',
-      up: true,
-    },
-    {
-      label: 'Active Courses',
-      value: courses.length,
-      icon: BookOpen,
-      color: 'from-purple-500 to-purple-600',
-      bgColor: 'bg-purple-50',
-      textColor: 'text-purple-600',
-      change: '+1',
-      up: true,
-    },
-    {
-      label: 'Avg Attendance',
-      value: `${avgAttendance}%`,
-      icon: TrendingUp,
-      color: 'from-emerald-500 to-emerald-600',
-      bgColor: 'bg-emerald-50',
-      textColor: 'text-emerald-600',
-      change: '+2.5%',
-      up: true,
-    },
-    {
-      label: 'Today Present',
-      value: `${Math.round((todayPresent / todayTotal) * 100)}%`,
-      icon: Activity,
-      color: 'from-amber-500 to-orange-500',
-      bgColor: 'bg-amber-50',
-      textColor: 'text-amber-600',
-      change: '-1.2%',
-      up: false,
-    },
-  ];
+  }, [students, courses, records, getCourseAttendanceRate]);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -149,7 +172,7 @@ export function Dashboard() {
 
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {stats.map((stat, i) => (
+        {stats.map((stat: any, i: number) => (
           <div
             key={stat.label}
             className={`animate-slide-in-up stagger-${i + 1} card-hover rounded-2xl bg-white p-5 border border-slate-100 shadow-sm`}
@@ -242,7 +265,7 @@ export function Dashboard() {
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie data={statusData} cx="50%" cy="50%" innerRadius={55} outerRadius={80} paddingAngle={4} dataKey="value">
-                  {statusData.map((entry, index) => (
+                  {statusData.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} strokeWidth={0} />
                   ))}
                 </Pie>
@@ -259,7 +282,7 @@ export function Dashboard() {
             </ResponsiveContainer>
           </div>
           <div className="grid grid-cols-2 gap-2 mt-2">
-            {statusData.map(s => (
+            {statusData.map((s: any) => (
               <div key={s.name} className="flex items-center gap-2">
                 <div className="h-2.5 w-2.5 rounded-full" style={{ background: s.color }} />
                 <span className="text-xs text-slate-500">{s.name}</span>
@@ -291,7 +314,7 @@ export function Dashboard() {
                   formatter={(value) => [`${value}%`, 'Attendance Rate']}
                 />
                 <Bar dataKey="rate" radius={[0, 6, 6, 0]} barSize={18}>
-                  {courseRates.map((entry, index) => (
+                  {courseRates.map((entry: any, index: number) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Bar>
@@ -309,7 +332,7 @@ export function Dashboard() {
             </span>
           </div>
           <div className="space-y-3">
-            {lowAttendance.map((student, i) => (
+            {lowAttendance.map((student: any, i: number) => (
               <button
                 key={student.id}
                 onClick={() => navigateToStudent(student.id)}

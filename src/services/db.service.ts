@@ -33,6 +33,14 @@ export const dbService = {
         await sql`DELETE FROM students WHERE id = ${id}`;
     },
 
+    async addEnrolment(studentId: string, courseId: string): Promise<void> {
+        await sql`INSERT INTO enrolments (student_id, course_id) VALUES (${studentId}, ${courseId}) ON CONFLICT DO NOTHING`;
+    },
+
+    async removeEnrolment(studentId: string, courseId: string): Promise<void> {
+        await sql`DELETE FROM enrolments WHERE student_id = ${studentId} AND course_id = ${courseId}`;
+    },
+
     // Courses
     async getAllCourses(): Promise<Course[]> {
         const courses = await sql`SELECT * FROM courses`;
