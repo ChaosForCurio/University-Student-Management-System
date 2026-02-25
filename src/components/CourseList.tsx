@@ -4,7 +4,7 @@ import { useAttendance } from '@/context/AttendanceContext';
 import { BookOpen, Users, Clock, TrendingUp, Plus, Trash2, X } from 'lucide-react';
 
 export function CourseList() {
-  const { courses, getCourseAttendanceRate, setSelectedCourseId, addCourse, deleteCourse } = useAttendance();
+  const { courses, getCourseAttendanceRate, setSelectedCourseId, addCourse, deleteCourse, isLoading } = useAttendance();
   const navigate = useNavigate();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newCourse, setNewCourse] = useState({
@@ -15,6 +15,17 @@ export function CourseList() {
     department: '',
     totalSessions: 30,
   });
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading courses...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleMarkAttendance = (courseId: string) => {
     setSelectedCourseId(courseId);

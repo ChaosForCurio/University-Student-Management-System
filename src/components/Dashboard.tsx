@@ -27,7 +27,18 @@ import {
 } from 'recharts';
 
 export function Dashboard() {
-  const { students, courses, records, getCourseAttendanceRate, navigateToStudent } = useAttendance();
+  const { students, courses, records, getCourseAttendanceRate, navigateToStudent, isLoading } = useAttendance();
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
 
   const today = format(new Date(), 'yyyy-MM-dd');
   const todayRecords = records.filter(r => r.date === today);

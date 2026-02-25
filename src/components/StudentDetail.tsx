@@ -1,8 +1,9 @@
-import { useMemo } from 'react';
+import { useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useAttendance } from '@/context/AttendanceContext';
 import { format, parseISO } from 'date-fns';
 import { ArrowLeft, Mail, Hash, Building2, GraduationCap, BookOpen, TrendingUp } from 'lucide-react';
-import { avatarColors } from '@/data/mockData';
+import { avatarColors } from '@/constants/ui';
 import {
   AreaChart,
   Area,
@@ -14,11 +15,20 @@ import {
 } from 'recharts';
 
 export function StudentDetail() {
-  const { students, courses, records, selectedStudentId, setCurrentPage, getAttendanceRate } = useAttendance();
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { students, courses, records, setSelectedStudentId, getAttendanceRate, isLoading } = useAttendance();
+
+  useEffect(() => {
+    if (id) {
+      setSelectedStudentId(id);
+    }
+    return () => setSelectedStudentId(null);
+  }, [id, setSelectedStudentId]);
 
   const student = useMemo(() => {
-    return students.find(s => s.id === selectedStudentId);
-  }, [students, selectedStudentId]);
+    return students.find(s => s.id === id);
+  }, [students, id]);
 
   const studentRecords = useMemo(() => {
     if (!student) return [];
@@ -69,11 +79,26 @@ export function StudentDetail() {
     });
   }, [studentRecords, courses]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading student details...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!student) {
     return (
       <div className="text-center py-20">
-        <p className="text-slate-400">Student not found</p>
-        <button onClick={() => setCurrentPage('students')} className="mt-4 text-primary-600 text-sm hover:underline">
+        <p className="text-slate-400 font-medium">Student not found</p>
+        <p className="text-xs text-slate-400 mt-1">The student with ID "{id}" could not be located.</p>
+        <button
+          onClick={() => navigate('/students')}
+          className="mt-6 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-medium transition-colors"
+        >
           Back to Students
         </button>
       </div>
@@ -95,10 +120,10 @@ export function StudentDetail() {
     <div className="space-y-6 animate-fade-in">
       {/* Back button */}
       <button
-        onClick={() => setCurrentPage('students')}
-        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors"
+        onClick={() => navigate('/students')}
+        className="flex items-center gap-2 text-sm text-slate-500 hover:text-slate-700 transition-colors group"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-1" />
         Back to Students
       </button>
 
@@ -210,9 +235,8 @@ export function StudentDetail() {
                     <span className="text-xs font-bold text-slate-700">{course.code}</span>
                     <span className="text-xs text-slate-400">{course.name}</span>
                   </div>
-                  <span className={`text-xs font-bold ${
-                    course.rate >= 75 ? 'text-emerald-600' : course.rate >= 60 ? 'text-amber-600' : 'text-red-600'
-                  }`}>
+                  <span className={`text-xs font-bold ${course.rate >= 75 ? 'text-emerald-600' : course.rate >= 60 ? 'text-amber-600' : 'text-red-600'
+                    }`}>
                     {course.rate}%
                   </span>
                 </div>

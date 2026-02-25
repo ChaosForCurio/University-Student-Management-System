@@ -14,7 +14,8 @@ import {
 } from 'recharts';
 
 export function AttendanceReport() {
-  const { courses, students, records } = useAttendance();
+  const { courses, students, records, isLoading } = useAttendance();
+
   const [selectedCourse, setSelectedCourse] = useState<string>('all');
   const [dateRange, setDateRange] = useState<'7' | '14' | '30'>('14');
   const [viewMode, setViewMode] = useState<'chart' | 'table'>('chart');
@@ -77,6 +78,17 @@ export function AttendanceReport() {
     return report.sort((a, b) => b.rate - a.rate);
   }, [students, filteredRecords]);
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Generating reports...</p>
+        </div>
+      </div>
+    );
+  }
+
   const handleExport = () => {
     const header = 'Name,Student ID,Department,Present,Absent,Late,Excused,Total,Rate\n';
     const rows = studentReport.map(s =>
@@ -129,9 +141,8 @@ export function AttendanceReport() {
               <button
                 key={range}
                 onClick={() => setDateRange(range)}
-                className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-colors ${
-                  dateRange === range ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-                }`}
+                className={`flex items-center gap-1.5 px-3.5 py-2 text-xs font-medium transition-colors ${dateRange === range ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                  }`}
               >
                 <Calendar className="h-3 w-3" />
                 {range}d
@@ -141,17 +152,15 @@ export function AttendanceReport() {
           <div className="flex rounded-xl border border-slate-200 overflow-hidden ml-auto">
             <button
               onClick={() => setViewMode('chart')}
-              className={`px-3.5 py-2 text-xs font-medium transition-colors ${
-                viewMode === 'chart' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`px-3.5 py-2 text-xs font-medium transition-colors ${viewMode === 'chart' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
             >
               <BarChart3 className="h-3.5 w-3.5" />
             </button>
             <button
               onClick={() => setViewMode('table')}
-              className={`px-3.5 py-2 text-xs font-medium transition-colors ${
-                viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
-              }`}
+              className={`px-3.5 py-2 text-xs font-medium transition-colors ${viewMode === 'table' ? 'bg-primary-600 text-white' : 'bg-white text-slate-600 hover:bg-slate-50'
+                }`}
             >
               Table
             </button>
@@ -244,9 +253,8 @@ export function AttendanceReport() {
                       <span className="text-sm text-slate-600">{s.total}</span>
                     </td>
                     <td className="px-5 py-3 text-center">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${
-                        s.rate >= 75 ? 'bg-emerald-50 text-emerald-600' : s.rate >= 60 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
-                      }`}>
+                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.rate >= 75 ? 'bg-emerald-50 text-emerald-600' : s.rate >= 60 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+                        }`}>
                         {s.rate}%
                       </span>
                     </td>

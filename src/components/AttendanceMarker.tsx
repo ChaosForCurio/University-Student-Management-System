@@ -1,9 +1,9 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
 import { AttendanceRecord } from '@/types';
 import { format } from 'date-fns';
 import { Check, X, Clock, Shield, UserCheck, Save, RotateCcw, Search } from 'lucide-react';
-import { avatarColors } from '@/data/mockData';
+import { avatarColors } from '@/constants/ui';
 
 type Status = AttendanceRecord['status'];
 
@@ -15,7 +15,8 @@ const statusConfig: Record<Status, { label: string; icon: typeof Check; class: s
 };
 
 export function AttendanceMarker() {
-  const { courses, students, records, selectedCourseId, setSelectedCourseId, bulkMarkAttendance } = useAttendance();
+  const { courses, students, records, selectedCourseId, setSelectedCourseId, bulkMarkAttendance, isLoading } = useAttendance();
+
   const [date, setDate] = useState(format(new Date(), 'yyyy-MM-dd'));
   const [attendanceMap, setAttendanceMap] = useState<Record<string, Status>>({});
   const [saved, setSaved] = useState(false);
@@ -33,7 +34,7 @@ export function AttendanceMarker() {
   }, [selectedCourse, students, search]);
 
   // Load existing attendance for selected course and date
-  useMemo(() => {
+  useEffect(() => {
     if (!selectedCourse) return;
     const existing: Record<string, Status> = {};
     records
@@ -43,6 +44,17 @@ export function AttendanceMarker() {
       });
     setAttendanceMap(existing);
   }, [selectedCourse, date, records]);
+
+  const stats = useMemo(() => {
+    const values = Object.values(attendanceMap);
+    return {
+      present: values.filter(v => v === 'present').length,
+      absent: values.filter(v => v === 'absent').length,
+      late: values.filter(v => v === 'late').length,
+      excused: values.filter(v => v === 'excused').length,
+      unmarked: courseStudents.length - values.length,
+    };
+  }, [attendanceMap, courseStudents]);
 
   const setStatus = (studentId: string, status: Status) => {
     setAttendanceMap(prev => ({ ...prev, [studentId]: status }));
@@ -63,16 +75,17 @@ export function AttendanceMarker() {
     setTimeout(() => setSaved(false), 3000);
   };
 
-  const stats = useMemo(() => {
-    const values = Object.values(attendanceMap);
-    return {
-      present: values.filter(v => v === 'present').length,
-      absent: values.filter(v => v === 'absent').length,
-      late: values.filter(v => v === 'late').length,
-      excused: values.filter(v => v === 'excused').length,
-      unmarked: courseStudents.length - values.length,
-    };
-  }, [attendanceMap, courseStudents]);
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading attendance data...</p>
+        </div>
+      </div>
+    );
+  }
+
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -157,11 +170,10 @@ export function AttendanceMarker() {
               </button>
               <button
                 onClick={handleSave}
-                className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold text-white transition-all shadow-sm ${
-                  saved
-                    ? 'bg-emerald-500 shadow-emerald-200'
-                    : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
-                }`}
+                className={`flex items-center gap-2 rounded-xl px-5 py-2 text-xs font-semibold text-white transition-all shadow-sm ${saved
+                  ? 'bg-emerald-500 shadow-emerald-200'
+                  : 'bg-primary-600 hover:bg-primary-700 shadow-primary-200'
+                  }`}
               >
                 {saved ? <Check className="h-3.5 w-3.5" /> : <Save className="h-3.5 w-3.5" />}
                 {saved ? 'Saved!' : 'Save Attendance'}
@@ -199,11 +211,10 @@ export function AttendanceMarker() {
                           <button
                             key={status}
                             onClick={() => setStatus(student.id, status)}
-                            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${
-                              isActive
-                                ? config.class + ' shadow-sm'
-                                : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600'
-                            }`}
+                            className={`flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-medium transition-all ${isActive
+                              ? config.class + ' shadow-sm'
+                              : 'border-slate-200 text-slate-400 hover:border-slate-300 hover:text-slate-600'
+                              }`}
                           >
                             <Icon className="h-3.5 w-3.5" />
                             <span className="hidden sm:inline">{config.label}</span>

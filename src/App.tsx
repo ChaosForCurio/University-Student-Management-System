@@ -10,6 +10,7 @@ import { Bell, Search } from 'lucide-react';
 import { format } from 'date-fns';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { ErrorBanner } from '@/components/ErrorBanner';
 
 function PageRenderer() {
   const location = useLocation();
@@ -111,6 +112,7 @@ function AppLayout() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
       <Sidebar />
       <div className="ml-64 transition-all duration-300">
+        <ErrorBanner />
         <TopBar />
         <main className="p-6">
           <PageRenderer />

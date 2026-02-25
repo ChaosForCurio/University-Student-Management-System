@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
 import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X } from 'lucide-react';
-import { avatarColors } from '@/data/mockData';
+import { avatarColors } from '@/constants/ui';
 
 export function StudentList() {
-  const { students, getAttendanceRate, navigateToStudent, addStudent, deleteStudent } = useAttendance();
+  const { students, getAttendanceRate, navigateToStudent, addStudent, deleteStudent, isLoading } = useAttendance();
+
   const [search, setSearch] = useState('');
   const [deptFilter, setDeptFilter] = useState('all');
   const [sortBy, setSortBy] = useState<'name' | 'attendance' | 'department'>('name');
@@ -36,13 +37,24 @@ export function StudentList() {
     if (sortBy === 'name') {
       result.sort((a, b) => a.name.localeCompare(b.name));
     } else if (sortBy === 'attendance') {
-      result.sort((a, b) => (a as ReturnType<typeof Object.assign>).attendanceRate - (b as ReturnType<typeof Object.assign>).attendanceRate);
+      result.sort((a, b) => (a as any).attendanceRate - (b as any).attendanceRate);
     } else {
       result.sort((a, b) => a.department.localeCompare(b.department));
     }
 
     return result;
   }, [students, search, deptFilter, sortBy, getAttendanceRate]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium animate-pulse">Loading students...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleAddStudent = (e: React.FormEvent) => {
     e.preventDefault();

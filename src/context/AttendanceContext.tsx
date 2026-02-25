@@ -1,8 +1,7 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Student, Course, AttendanceRecord, Page } from '@/types';
-import { students as initialStudents, courses as initialCourses, attendanceRecords as initialRecords } from '@/data/mockData';
-import { format } from 'date-fns';
+import { dbService } from '@/services/db.service';
 
 interface AttendanceContextType {
   students: Student[];
@@ -11,86 +10,220 @@ interface AttendanceContextType {
   currentPage: Page;
   selectedStudentId: string | null;
   selectedCourseId: string | null;
+  isLoading: boolean;
   setCurrentPage: (page: Page) => void;
   setSelectedStudentId: (id: string | null) => void;
   setSelectedCourseId: (id: string | null) => void;
-  markAttendance: (studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => void;
-  bulkMarkAttendance: (courseId: string, date: string, attendanceMap: Record<string, AttendanceRecord['status']>) => void;
+  markAttendance: (studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => Promise<void>;
+  bulkMarkAttendance: (courseId: string, date: string, attendanceMap: Record<string, AttendanceRecord['status']>) => Promise<void>;
   getStudentAttendance: (studentId: string, courseId?: string) => AttendanceRecord[];
   getCourseAttendance: (courseId: string, date?: string) => AttendanceRecord[];
   getAttendanceRate: (studentId: string, courseId?: string) => number;
   getCourseAttendanceRate: (courseId: string) => number;
   navigateToStudent: (studentId: string) => void;
-  addStudent: (student: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => void;
-  deleteStudent: (studentId: string) => void;
-  addCourse: (course: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => void;
-  deleteCourse: (courseId: string) => void;
+  addStudent: (student: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => Promise<void>;
+  deleteStudent: (studentId: string) => Promise<void>;
+  addCourse: (course: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => Promise<void>;
+  deleteCourse: (courseId: string) => Promise<void>;
+  refreshData: () => Promise<void>;
+  error: string | null;
+  clearError: () => void;
 }
 
 const AttendanceContext = createContext<AttendanceContextType | null>(null);
 
 export function AttendanceProvider({ children }: { children: ReactNode }) {
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
-  const [records, setRecords] = useState<AttendanceRecord[]>(initialRecords);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState<Page>('dashboard');
   const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
   const [selectedCourseId, setSelectedCourseId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const addStudent = useCallback((newStudent: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => {
-    setStudents(prev => [...prev, {
+  const clearError = useCallback(() => setError(null), []);
+
+  const refreshData = useCallback(async () => {
+    setIsLoading(true);
+    setError(null);
+    try {
+      const [dbStudents, dbCourses, dbRecords] = await Promise.all([
+        dbService.getAllStudents(),
+        dbService.getAllCourses(),
+        dbService.getAllRecords(),
+      ]);
+      setStudents(dbStudents);
+      setCourses(dbCourses);
+      setRecords(dbRecords);
+    } catch (err) {
+      console.error('Failed to fetch data from Neon DB:', err);
+      setError('Failed to load data from the database. Please check your connection.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshData();
+  }, [refreshData]);
+
+  const addStudent = useCallback(async (newStudent: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => {
+    // Find matching courses for auto-enrollment
+    const matchingCourses = courses.filter(
+      c => c.department.toLowerCase().trim() === newStudent.department.toLowerCase().trim()
+    );
+
+    // More robust ID generation
+    const lastNum = students.reduce((max, s) => {
+      const num = parseInt(s.id.split('-')[1]);
+      return num > max ? num : max;
+    }, 0);
+
+    const studentWithId: Student = {
       ...newStudent,
-      id: `S-${String(prev.length + 1).padStart(5, '0')}`,
+      id: `S-${String(lastNum + 1).padStart(5, '0')}`,
       avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newStudent.name}`,
-      enrolledCourses: []
-    }]);
-  }, []);
+      enrolledCourses: matchingCourses.map(c => c.id)
+    };
 
-  const deleteStudent = useCallback((studentId: string) => {
-    setStudents(prev => prev.filter(s => s.id !== studentId));
-    setRecords(prev => prev.filter(r => r.studentId !== studentId));
-  }, []);
+    try {
+      await dbService.addStudent(studentWithId);
+      setStudents(prev => [...prev, studentWithId]);
 
-  const addCourse = useCallback((newCourse: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => {
-    const colors = ['indigo', 'blue', 'rose', 'amber', 'emerald'];
-    setCourses(prev => [...prev, {
-      ...newCourse,
-      id: `C-${String(prev.length + 1).padStart(5, '0')}`,
-      enrolledStudents: [],
-      color: colors[prev.length % colors.length]
-    }]);
-  }, []);
-
-  const deleteCourse = useCallback((courseId: string) => {
-    setCourses(prev => prev.filter(c => c.id !== courseId));
-    setRecords(prev => prev.filter(r => r.courseId !== courseId));
-  }, []);
-
-  const markAttendance = useCallback((studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => {
-    setRecords(prev => {
-      const existing = prev.findIndex(r => r.studentId === studentId && r.courseId === courseId && r.date === date);
-      if (existing >= 0) {
-        const updated = [...prev];
-        updated[existing] = { ...updated[existing], status, markedAt: new Date().toISOString() };
-        return updated;
+      // Update courses local state to reflect new enrollment
+      if (matchingCourses.length > 0) {
+        setCourses(prevCourses => prevCourses.map(course => {
+          if (matchingCourses.some(mc => mc.id === course.id)) {
+            return {
+              ...course,
+              enrolledStudents: [...(course.enrolledStudents || []), studentWithId.id]
+            };
+          }
+          return course;
+        }));
       }
-      return [...prev, {
-        id: `ATT-${String(prev.length + 1).padStart(5, '0')}`,
-        studentId,
-        courseId,
-        date,
-        status,
-        markedAt: new Date().toISOString(),
-      }];
-    });
+    } catch (err) {
+      console.error('Failed to add student:', err);
+      setError(`Failed to add student: ${err instanceof Error ? err.message : 'Unknown database error'}`);
+    }
+  }, [students, courses]);
+
+  const deleteStudent = useCallback(async (studentId: string) => {
+    try {
+      await dbService.deleteStudent(studentId);
+      setStudents(prev => prev.filter(s => s.id !== studentId));
+      setRecords(prev => prev.filter(r => r.studentId !== studentId));
+      // Also update courses local state
+      setCourses(prev => prev.map(c => ({
+        ...c,
+        enrolledStudents: c.enrolledStudents.filter(id => id !== studentId)
+      })));
+    } catch (err) {
+      console.error('Failed to delete student:', err);
+      setError('Failed to delete student from the database.');
+    }
   }, []);
 
-  const bulkMarkAttendance = useCallback((courseId: string, date: string, attendanceMap: Record<string, AttendanceRecord['status']>) => {
-    Object.entries(attendanceMap).forEach(([studentId, status]) => {
-      markAttendance(studentId, courseId, date, status);
-    });
-  }, [markAttendance]);
+  const addCourse = useCallback(async (newCourse: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => {
+    // Find matching students for auto-enrollment
+    const matchingStudents = students.filter(
+      s => s.department.toLowerCase().trim() === newCourse.department.toLowerCase().trim()
+    );
+
+    // More robust ID generation
+    const lastNum = courses.reduce((max, c) => {
+      const num = parseInt(c.id.split('-')[1]);
+      return num > max ? num : max;
+    }, 0);
+
+    const colors = ['indigo', 'blue', 'rose', 'amber', 'emerald'];
+    const courseWithId: Course = {
+      ...newCourse,
+      id: `C-${String(lastNum + 1).padStart(5, '0')}`,
+      enrolledStudents: matchingStudents.map(s => s.id),
+      color: colors[courses.length % colors.length]
+    };
+
+    try {
+      await dbService.addCourse(courseWithId, matchingStudents.map(s => s.id));
+      setCourses(prev => [...prev, courseWithId]);
+
+      // Update students local state to reflect new enrollment
+      if (matchingStudents.length > 0) {
+        setStudents(prevStudents => prevStudents.map(student => {
+          if (matchingStudents.some(ms => ms.id === student.id)) {
+            return {
+              ...student,
+              enrolledCourses: [...(student.enrolledCourses || []), courseWithId.id]
+            };
+          }
+          return student;
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to add course:', err);
+      setError(`Failed to add course: ${err instanceof Error ? err.message : 'Unknown database error'}. Check if the course code already exists.`);
+    }
+  }, [courses, students]);
+
+  const deleteCourse = useCallback(async (courseId: string) => {
+    try {
+      await dbService.deleteCourse(courseId);
+      setCourses(prev => prev.filter(c => c.id !== courseId));
+      setRecords(prev => prev.filter(r => r.courseId !== courseId));
+    } catch (err) {
+      console.error('Failed to delete course:', err);
+      setError('Failed to delete course from the database.');
+    }
+  }, []);
+
+  const markAttendance = useCallback(async (studentId: string, courseId: string, date: string, status: AttendanceRecord['status']) => {
+    const newRecord: AttendanceRecord = {
+      id: `ATT-${String(records.length + 1).padStart(5, '0')}`,
+      studentId,
+      courseId,
+      date,
+      status,
+      markedAt: new Date().toISOString(),
+    };
+
+    try {
+      await dbService.addRecord(newRecord);
+      setRecords(prev => {
+        const existing = prev.findIndex(r => r.studentId === studentId && r.courseId === courseId && r.date === date);
+        if (existing >= 0) {
+          const updated = [...prev];
+          updated[existing] = { ...updated[existing], status, markedAt: newRecord.markedAt };
+          return updated;
+        }
+        return [...prev, newRecord];
+      });
+    } catch (err) {
+      console.error('Failed to mark attendance:', err);
+      setError('Failed to save attendance record.');
+    }
+  }, [records.length]);
+
+  const bulkMarkAttendance = useCallback(async (courseId: string, date: string, attendanceMap: Record<string, AttendanceRecord['status']>) => {
+    const newRecords = Object.entries(attendanceMap).map(([studentId, status], index) => ({
+      id: `ATT-${String(records.length + index + 1).padStart(5, '0')}`,
+      studentId,
+      courseId,
+      date,
+      status,
+      markedAt: new Date().toISOString(),
+    }));
+
+    try {
+      await dbService.bulkAddRecords(newRecords);
+      setRecords(prev => [...prev, ...newRecords]);
+    } catch (err) {
+      console.error('Failed bulk attendance mark:', err);
+      setError('Failed to save bulk attendance records.');
+    }
+  }, [records.length]);
 
   const getStudentAttendance = useCallback((studentId: string, courseId?: string) => {
     return records.filter(r => r.studentId === studentId && (!courseId || r.courseId === courseId));
@@ -119,9 +252,6 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     navigate(`/students/${studentId}`);
   }, [navigate]);
 
-  const today = format(new Date(), 'yyyy-MM-dd');
-  void today;
-
   return (
     <AttendanceContext.Provider value={{
       students,
@@ -130,6 +260,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       currentPage,
       selectedStudentId,
       selectedCourseId,
+      isLoading,
       setCurrentPage,
       setSelectedStudentId,
       setSelectedCourseId,
@@ -144,6 +275,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       deleteStudent,
       addCourse,
       deleteCourse,
+      refreshData,
+      error,
+      clearError,
     }}>
       {children}
     </AttendanceContext.Provider>
