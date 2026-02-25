@@ -26,16 +26,38 @@ import {
   Pie,
   Cell,
 } from 'recharts';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export function Dashboard() {
   const { students, courses, records, getCourseAttendanceRate, navigateToStudent, isLoading } = useAttendance();
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Loading dashboard data...</p>
+      <div className="space-y-6 animate-fade-in">
+        {/* Header Skeleton */}
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+          ))}
+        </div>
+
+        {/* Today's Quick Stats Skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+          ))}
+        </div>
+
+        {/* Charts Row Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
         </div>
       </div>
     );

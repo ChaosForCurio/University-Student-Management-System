@@ -4,15 +4,18 @@ import { Student, Course, AttendanceRecord } from '@/types';
 export const dbService = {
     // Students
     async getAllStudents(): Promise<Student[]> {
-        const students = await sql`SELECT * FROM students`;
-        const enrolments = await sql`SELECT * FROM enrolments`;
+        const result = await sql`
+            SELECT s.*, 
+                   array_remove(array_agg(e.course_id), NULL) as enrolled_courses
+            FROM students s
+            LEFT JOIN enrolments e ON s.id = e.student_id
+            GROUP BY s.id
+        `;
 
-        return students.map(s => ({
+        return result.map(s => ({
             ...s,
-            enrolledCourses: enrolments
-                .filter(e => e.student_id === s.id)
-                .map(e => e.course_id),
-            studentId: s.student_id // mapped from snake_case
+            studentId: s.student_id,
+            enrolledCourses: s.enrolled_courses || []
         })) as Student[];
     },
 
@@ -43,15 +46,18 @@ export const dbService = {
 
     // Courses
     async getAllCourses(): Promise<Course[]> {
-        const courses = await sql`SELECT * FROM courses`;
-        const enrolments = await sql`SELECT * FROM enrolments`;
+        const result = await sql`
+            SELECT c.*, 
+                   array_remove(array_agg(e.student_id), NULL) as enrolled_students
+            FROM courses c
+            LEFT JOIN enrolments e ON c.id = e.course_id
+            GROUP BY c.id
+        `;
 
-        return courses.map(c => ({
+        return result.map(c => ({
             ...c,
             totalSessions: c.total_sessions,
-            enrolledStudents: enrolments
-                .filter(e => e.course_id === c.id)
-                .map(e => e.student_id)
+            enrolledStudents: c.enrolled_students || []
         })) as Course[];
     },
 

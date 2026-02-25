@@ -6,6 +6,8 @@ import {
     Search, Plus, X, UserMinus, CheckCircle2, AlertCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export function CourseDetail() {
     const { id } = useParams<{ id: string }>();
@@ -39,10 +41,19 @@ export function CourseDetail() {
 
     if (isLoading) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="flex flex-col items-center gap-4">
-                    <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-                    <p className="text-slate-500 font-medium animate-pulse">Loading course details...</p>
+            <div className="space-y-6 animate-fade-in">
+                <div className="flex justify-between items-center">
+                    <div className="flex items-center gap-4">
+                        <Skeleton className="h-10 w-10 rounded-xl" />
+                        <div className="space-y-2">
+                            <Skeleton className="h-4 w-24" />
+                            <Skeleton className="h-8 w-48" />
+                        </div>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Skeleton className="h-96 w-full rounded-2xl" />
+                    <Skeleton className="lg:col-span-2 h-96 w-full rounded-2xl" />
                 </div>
             </div>
         );
@@ -197,20 +208,16 @@ export function CourseDetail() {
 
                     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
                         {enrolledStudents.length === 0 ? (
-                            <div className="p-12 text-center">
-                                <div className="h-16 w-16 bg-slate-50 rounded-2xl flex items-center justify-center mx-auto mb-4 text-slate-400">
-                                    <Users className="h-8 w-8" />
-                                </div>
-                                <h3 className="text-sm font-bold text-slate-900">No students enrolled</h3>
-                                <p className="text-xs text-slate-500 mt-1 max-w-[200px] mx-auto">
-                                    Add students to this course to start tracking their attendance.
-                                </p>
-                                <button
-                                    onClick={() => setIsAddStudentOpen(true)}
-                                    className="mt-4 text-primary-600 font-bold text-xs uppercase tracking-wider hover:text-primary-700"
-                                >
-                                    Enroll First Student
-                                </button>
+                            <div className="p-6">
+                                <EmptyState
+                                    icon={Users}
+                                    title="No students enrolled"
+                                    description="Add students to this course to start tracking their attendance and monitoring performance."
+                                    action={{
+                                        label: "Enroll First Student",
+                                        onClick: () => setIsAddStudentOpen(true)
+                                    }}
+                                />
                             </div>
                         ) : (
                             <div className="overflow-x-auto">
@@ -228,7 +235,12 @@ export function CourseDetail() {
                                             <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center gap-3">
-                                                        <img src={student.avatar} alt={student.name} className="h-8 w-8 rounded-full bg-slate-100" />
+                                                        <div
+                                                            className="flex h-8 w-8 items-center justify-center rounded-full text-white text-[10px] font-bold shrink-0"
+                                                            style={{ background: '#6366f1' }}
+                                                        >
+                                                            {student.avatar}
+                                                        </div>
                                                         <div className="min-w-0">
                                                             <p className="text-sm font-semibold text-slate-900 truncate">{student.name}</p>
                                                             <p className="text-[10px] text-slate-400 truncate sm:hidden">{student.studentId}</p>
@@ -260,7 +272,7 @@ export function CourseDetail() {
                 </div>
             </div>
 
-            {/* Enroll Student Drawer/Side Panel (using a simple Modal for now) */}
+            {/* Enroll Student Drawer/Side Panel */}
             <AnimatePresence>
                 {isAddStudentOpen && (
                     <div className="fixed inset-0 z-[70] flex justify-end">
@@ -318,7 +330,12 @@ export function CourseDetail() {
                                                     className="flex items-center justify-between p-3 rounded-2xl border border-slate-50 hover:border-primary-100 hover:bg-primary-50/30 transition-all group"
                                                 >
                                                     <div className="flex items-center gap-3">
-                                                        <img src={student.avatar} alt={student.name} className="h-10 w-10 rounded-full bg-slate-100" />
+                                                        <div
+                                                            className="flex h-10 w-10 items-center justify-center rounded-full text-white text-xs font-bold shrink-0"
+                                                            style={{ background: '#6366f1' }}
+                                                        >
+                                                            {student.avatar}
+                                                        </div>
                                                         <div>
                                                             <p className="text-sm font-semibold text-slate-900">{student.name}</p>
                                                             <p className="text-[10px] text-slate-500">{student.studentId} • {student.department}</p>

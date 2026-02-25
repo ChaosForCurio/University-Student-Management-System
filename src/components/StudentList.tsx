@@ -1,7 +1,10 @@
 import { useState, useMemo, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAttendance } from '@/context/AttendanceContext';
-import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X } from 'lucide-react';
+import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X, Users } from 'lucide-react';
 import { avatarColors } from '@/constants/ui';
+import { Skeleton } from '@/components/ui/Skeleton';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export function StudentList() {
   const { students, getAttendanceRate, navigateToStudent, addStudent, deleteStudent, isLoading } = useAttendance();
@@ -54,14 +57,26 @@ export function StudentList() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Loading students...</p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-48 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
+        </div>
+        <div className="flex gap-4">
+          <Skeleton className="h-12 flex-1 rounded-xl" />
+          <Skeleton className="h-12 w-32 rounded-xl" />
+        </div>
+        <div className="rounded-2xl border border-slate-100 p-4 space-y-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="h-16 w-full rounded-xl" />
+          ))}
         </div>
       </div>
     );
   }
+
+  const isFilteredEmpty = filteredStudents.length === 0 && (search || deptFilter !== 'all');
+  const isAllEmpty = students.length === 0;
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -221,100 +236,123 @@ export function StudentList() {
               })}
             </tbody>
           </table>
+
+          {(isFilteredEmpty || isAllEmpty) && (
+            <div className="border-t border-slate-50">
+              <EmptyState
+                icon={isFilteredEmpty ? Filter : Users}
+                title={isFilteredEmpty ? "No matching students" : "No students added yet"}
+                description={isFilteredEmpty
+                  ? "Try adjusting your filters or search terms to find what you're looking for."
+                  : "Get started by adding your first student to the system."}
+                action={isAllEmpty ? {
+                  label: "Add First Student",
+                  onClick: () => setIsAddModalOpen(true)
+                } : undefined}
+              />
+            </div>
+          )}
         </div>
       </div>
 
       {/* Add Student Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-scale-in">
-            <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
-              <h3 className="text-lg font-bold text-slate-900">Add New Student</h3>
-              <button
-                onClick={() => setIsAddModalOpen(false)}
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-            <form onSubmit={handleAddStudent} className="p-6 space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase">Full Name</label>
-                <input
-                  required
-                  type="text"
-                  placeholder="e.g. John Doe"
-                  value={newStudent.name}
-                  onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500 uppercase">Student ID</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. STU001"
-                    value={newStudent.studentId}
-                    onChange={e => setNewStudent({ ...newStudent, studentId: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
-                  />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-xs font-semibold text-slate-500 uppercase">Department</label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. CS"
-                    value={newStudent.department}
-                    onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
-                  />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase">Email Address</label>
-                <input
-                  required
-                  type="email"
-                  placeholder="e.g. john@uni.edu"
-                  value={newStudent.email}
-                  onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-xs font-semibold text-slate-500 uppercase">Semester</label>
-                <input
-                  required
-                  type="number"
-                  min="1"
-                  max="8"
-                  value={newStudent.semester}
-                  onChange={e => setNewStudent({ ...newStudent, semester: parseInt(e.target.value) })}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
-                />
-              </div>
-              <div className="flex gap-3 pt-2">
+      <AnimatePresence>
+        {isAddModalOpen && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900">Add New Student</h3>
                 <button
-                  type="button"
                   onClick={() => setIsAddModalOpen(false)}
-                  className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
                 >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
-                >
-                  Create Student
+                  <X className="h-5 w-5" />
                 </button>
               </div>
-            </form>
+              <form onSubmit={handleAddStudent} className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Full Name</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. John Doe"
+                    value={newStudent.name}
+                    onChange={e => setNewStudent({ ...newStudent, name: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Student ID</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. STU001"
+                      value={newStudent.studentId}
+                      onChange={e => setNewStudent({ ...newStudent, studentId: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Department</label>
+                    <input
+                      required
+                      type="text"
+                      placeholder="e.g. CS"
+                      value={newStudent.department}
+                      onChange={e => setNewStudent({ ...newStudent, department: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Email Address</label>
+                  <input
+                    required
+                    type="email"
+                    placeholder="e.g. john@uni.edu"
+                    value={newStudent.email}
+                    onChange={e => setNewStudent({ ...newStudent, email: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Semester</label>
+                  <input
+                    required
+                    type="number"
+                    min="1"
+                    max="8"
+                    value={newStudent.semester}
+                    onChange={e => setNewStudent({ ...newStudent, semester: parseInt(e.target.value) })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAddModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
+                  >
+                    Create Student
+                  </button>
+                </div>
+              </form>
+            </motion.div>
           </div>
-        </div>
-      )}
+        )}
+      </AnimatePresence>
     </div>
   );
 }

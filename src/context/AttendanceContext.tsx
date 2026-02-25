@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useCallback, useEffect, type React
 import { useNavigate } from 'react-router-dom';
 import { Student, Course, AttendanceRecord, Page } from '@/types';
 import { dbService } from '@/services/db.service';
+import toast from 'react-hot-toast';
 
 interface AttendanceContextType {
   students: Student[];
@@ -93,6 +94,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     try {
       await dbService.addStudent(studentWithId);
       setStudents(prev => [...prev, studentWithId]);
+      toast.success('Student added successfully!');
 
       // Update courses local state to reflect new enrollment
       if (matchingCourses.length > 0) {
@@ -108,7 +110,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Failed to add student:', err);
-      setError(`Failed to add student: ${err instanceof Error ? err.message : 'Unknown database error'}`);
+      const msg = err instanceof Error ? err.message : 'Unknown database error';
+      setError(`Failed to add student: ${msg}`);
+      toast.error('Failed to add student.');
     }
   }, [students, courses]);
 
@@ -122,9 +126,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         ...c,
         enrolledStudents: c.enrolledStudents.filter(id => id !== studentId)
       })));
+      toast.success('Student deleted successfully');
     } catch (err) {
       console.error('Failed to delete student:', err);
       setError('Failed to delete student from the database.');
+      toast.error('Failed to delete student.');
     }
   }, []);
 
@@ -151,6 +157,7 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     try {
       await dbService.addCourse(courseWithId, matchingStudents.map(s => s.id));
       setCourses(prev => [...prev, courseWithId]);
+      toast.success('Course added successfully!');
 
       // Update students local state to reflect new enrollment
       if (matchingStudents.length > 0) {
@@ -166,7 +173,9 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       }
     } catch (err) {
       console.error('Failed to add course:', err);
-      setError(`Failed to add course: ${err instanceof Error ? err.message : 'Unknown database error'}. Check if the course code already exists.`);
+      const msg = err instanceof Error ? err.message : 'Unknown database error';
+      setError(`Failed to add course: ${msg}. Check if the course code already exists.`);
+      toast.error('Failed to add course.');
     }
   }, [courses, students]);
 
@@ -175,9 +184,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       await dbService.deleteCourse(courseId);
       setCourses(prev => prev.filter(c => c.id !== courseId));
       setRecords(prev => prev.filter(r => r.courseId !== courseId));
+      toast.success('Course deleted successfully');
     } catch (err) {
       console.error('Failed to delete course:', err);
       setError('Failed to delete course from the database.');
+      toast.error('Failed to delete course.');
     }
   }, []);
 
@@ -196,9 +207,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
         return c;
       }));
+      toast.success('Student enrolled successfully');
     } catch (err) {
       console.error('Failed to enroll student:', err);
       setError('Failed to enroll student in the course.');
+      toast.error('Failed to enroll student.');
     }
   }, []);
 
@@ -217,9 +230,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
         return c;
       }));
+      toast.success('Student unenrolled successfully');
     } catch (err) {
       console.error('Failed to unenroll student:', err);
       setError('Failed to unenroll student from the course.');
+      toast.error('Failed to unenroll student.');
     }
   }, []);
 
@@ -245,9 +260,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
         }
         return [...prev, newRecord];
       });
+      toast.success(`Attendance marked as ${status}`);
     } catch (err) {
       console.error('Failed to mark attendance:', err);
       setError('Failed to save attendance record.');
+      toast.error('Failed to mark attendance.');
     }
   }, [records.length]);
 
@@ -264,9 +281,11 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     try {
       await dbService.bulkAddRecords(newRecords);
       setRecords(prev => [...prev, ...newRecords]);
+      toast.success(`Marked attendance for ${newRecords.length} students`);
     } catch (err) {
       console.error('Failed bulk attendance mark:', err);
       setError('Failed to save bulk attendance records.');
+      toast.error('Failed to save bulk attendance.');
     }
   }, [records.length]);
 

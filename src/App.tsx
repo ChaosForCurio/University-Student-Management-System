@@ -11,6 +11,7 @@ import { Bell, Search, Menu } from 'lucide-react';
 import { format } from 'date-fns';
 import { Routes, Route, useLocation } from 'react-router-dom';
 import { AnimatePresence, motion } from 'framer-motion';
+import { Toaster } from 'react-hot-toast';
 import { ErrorBanner } from '@/components/ErrorBanner';
 import { useState } from 'react';
 
@@ -128,6 +129,7 @@ function AppLayout() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50">
+      <Toaster position="top-right" reverseOrder={false} />
       <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       <div className="lg:ml-64 transition-all duration-300">
         <ErrorBanner />

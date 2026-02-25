@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useAttendance } from '@/context/AttendanceContext';
 import { format, subDays, parseISO, eachDayOfInterval } from 'date-fns';
-import { Download, Filter, Calendar, BarChart3 } from 'lucide-react';
+import { Download, Filter, Calendar, BarChart3, BarChart as BarChartIcon } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import {
   BarChart,
   Bar,
@@ -12,6 +13,7 @@ import {
   ResponsiveContainer,
   Legend,
 } from 'recharts';
+import { Skeleton } from '@/components/ui/Skeleton';
 
 export function AttendanceReport() {
   const { courses, students, records, isLoading } = useAttendance();
@@ -98,11 +100,18 @@ export function AttendanceReport() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="flex flex-col items-center gap-4">
-          <div className="h-12 w-12 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium animate-pulse">Generating reports...</p>
+      <div className="space-y-6 animate-fade-in">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-64 rounded-xl" />
+          <Skeleton className="h-10 w-32 rounded-xl" />
         </div>
+        <Skeleton className="h-20 w-full rounded-2xl" />
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Skeleton key={i} className="h-24 w-full rounded-xl" />
+          ))}
+        </div>
+        <Skeleton className="h-80 w-full rounded-2xl" />
       </div>
     );
   }
@@ -190,86 +199,96 @@ export function AttendanceReport() {
         ))}
       </div>
 
-      {viewMode === 'chart' ? (
-        /* Chart View */
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
-          <h3 className="text-sm font-semibold text-slate-900 mb-4">Daily Attendance Breakdown</h3>
-          <div className="h-72">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={dailyData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                <Tooltip
-                  contentStyle={{
-                    background: 'white',
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '12px',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                    fontSize: '12px',
-                  }}
-                />
-                <Legend wrapperStyle={{ fontSize: '11px' }} />
-                <Bar dataKey="Present" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="a" />
-                <Bar dataKey="Late" fill="#f59e0b" radius={[0, 0, 0, 0]} stackId="a" />
-                <Bar dataKey="Excused" fill="#3b82f6" radius={[0, 0, 0, 0]} stackId="a" />
-                <Bar dataKey="Absent" fill="#ef4444" radius={[2, 2, 0, 0]} stackId="a" />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+      {studentReport.length === 0 ? (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-12">
+          <EmptyState
+            icon={BarChartIcon}
+            title="No records found"
+            description="Adjust your filters or select a different date range to see attendance analysis."
+          />
         </div>
       ) : (
-        /* Table View */
-        <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-slate-100 bg-slate-50/50">
-                  <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Present</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Absent</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Late</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Excused</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
-                  <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Rate</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50">
-                {studentReport.slice(0, 20).map(s => (
-                  <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
-                    <td className="px-5 py-3">
-                      <div>
-                        <p className="text-sm font-medium text-slate-900">{s.name}</p>
-                        <p className="text-xs text-slate-400">{s.department}</p>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="text-sm font-medium text-emerald-600">{s.present}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="text-sm font-medium text-red-600">{s.absent}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="text-sm font-medium text-amber-600">{s.late}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="text-sm font-medium text-blue-600">{s.excused}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className="text-sm text-slate-600">{s.total}</span>
-                    </td>
-                    <td className="px-5 py-3 text-center">
-                      <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.rate >= 75 ? 'bg-emerald-50 text-emerald-600' : s.rate >= 60 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
-                        }`}>
-                        {s.rate}%
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        viewMode === 'chart' ? (
+          /* Chart View */
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
+            <h3 className="text-sm font-semibold text-slate-900 mb-4">Daily Attendance Breakdown</h3>
+            <div className="h-72">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={dailyData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                      fontSize: '12px',
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '11px' }} />
+                  <Bar dataKey="Present" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="a" />
+                  <Bar dataKey="Late" fill="#f59e0b" radius={[0, 0, 0, 0]} stackId="a" />
+                  <Bar dataKey="Excused" fill="#3b82f6" radius={[0, 0, 0, 0]} stackId="a" />
+                  <Bar dataKey="Absent" fill="#ef4444" radius={[2, 2, 0, 0]} stackId="a" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Table View */
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-100 bg-slate-50/50">
+                    <th className="px-5 py-3 text-left text-xs font-semibold text-slate-500 uppercase tracking-wider">Student</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Present</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Absent</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Late</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Excused</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Total</th>
+                    <th className="px-5 py-3 text-center text-xs font-semibold text-slate-500 uppercase tracking-wider">Rate</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {studentReport.slice(0, 20).map(s => (
+                    <tr key={s.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-3">
+                        <div>
+                          <p className="text-sm font-medium text-slate-900">{s.name}</p>
+                          <p className="text-xs text-slate-400">{s.department}</p>
+                        </div>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className="text-sm font-medium text-emerald-600">{s.present}</span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className="text-sm font-medium text-red-600">{s.absent}</span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className="text-sm font-medium text-amber-600">{s.late}</span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className="text-sm font-medium text-blue-600">{s.excused}</span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className="text-sm text-slate-600">{s.total}</span>
+                      </td>
+                      <td className="px-5 py-3 text-center">
+                        <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${s.rate >= 75 ? 'bg-emerald-50 text-emerald-600' : s.rate >= 60 ? 'bg-amber-50 text-amber-600' : 'bg-red-50 text-red-600'
+                          }`}>
+                          {s.rate}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )
       )}
     </div>
   );
