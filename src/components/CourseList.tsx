@@ -1,15 +1,32 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAttendance } from '@/context/AttendanceContext';
-import { BookOpen, Users, Clock, TrendingUp, Plus, Trash2, X } from 'lucide-react';
+import { BookOpen, Users, Clock, TrendingUp, Plus, Trash2, X, Edit2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'react-hot-toast';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { Course } from '@/types';
 
 export function CourseList() {
-  const { courses, getCourseAttendanceRate, setSelectedCourseId, addCourse, deleteCourse, isLoading } = useAttendance();
+  const {
+    courses,
+    getCourseAttendanceRate,
+    setSelectedCourseId,
+    addCourse,
+    deleteCourse,
+    updateCourse,
+    isLoading
+  } = useAttendance();
   const navigate = useNavigate();
+
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [courseToDelete, setCourseToDelete] = useState<string | null>(null);
+  const [editingCourse, setEditingCourse] = useState<Course | null>(null);
+
   const [newCourse, setNewCourse] = useState({
     name: '',
     code: '',
@@ -40,11 +57,47 @@ export function CourseList() {
     navigate('/mark-attendance');
   };
 
-  const handleAddCourse = (e: React.FormEvent) => {
+  const handleAddCourse = async (e: React.FormEvent) => {
     e.preventDefault();
-    addCourse(newCourse);
-    setIsAddModalOpen(false);
-    setNewCourse({ name: '', code: '', instructor: '', schedule: '', department: '', totalSessions: 30 });
+    try {
+      await addCourse(newCourse);
+      setIsAddModalOpen(false);
+      setNewCourse({ name: '', code: '', instructor: '', schedule: '', department: '', totalSessions: 30 });
+      // Toast is handled in context
+    } catch (error) {
+      // Error is handled in context
+    }
+  };
+
+  const handleUpdateCourse = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourse) return;
+    try {
+      await updateCourse(editingCourse);
+      setIsEditModalOpen(false);
+      setEditingCourse(null);
+    } catch (error) {
+      // Handled in context
+    }
+  };
+
+  const openDeleteDialog = (id: string) => {
+    setCourseToDelete(id);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!courseToDelete) return;
+    try {
+      await deleteCourse(courseToDelete);
+    } catch (error) {
+      // Handled in context
+    }
+  };
+
+  const openEditModal = (course: Course) => {
+    setEditingCourse(course);
+    setIsEditModalOpen(true);
   };
 
   return (
@@ -96,20 +149,23 @@ export function CourseList() {
                       <span className="text-[10px] md:text-xs font-bold text-slate-400 tracking-wider truncate block">{course.code}</span>
                       <h3 className="text-sm font-semibold text-slate-900 mt-0.5 leading-snug truncate">{course.name}</h3>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
-                        onClick={() => {
-                          if (window.confirm('Are you sure you want to delete this course?')) {
-                            deleteCourse(course.id);
-                          }
-                        }}
+                        onClick={() => openEditModal(course)}
+                        className="flex lg:hidden lg:group-hover:flex h-8 w-8 items-center justify-center rounded-lg bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+                        title="Edit Course"
+                      >
+                        <Edit2 className="h-3.5 w-3.5" />
+                      </button>
+                      <button
+                        onClick={() => openDeleteDialog(course.id)}
                         className="flex lg:hidden lg:group-hover:flex h-8 w-8 items-center justify-center rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
                         title="Delete Course"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
                       </button>
                       <div
-                        className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl shrink-0"
+                        className="flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-xl shrink-0 ml-1"
                         style={{ background: `${course.color}15`, color: course.color }}
                       >
                         <BookOpen className="h-4 w-4 md:h-5 md:w-5" />
@@ -175,12 +231,19 @@ export function CourseList() {
       {/* Add Course Modal */}
       <AnimatePresence>
         {isAddModalOpen && (
-          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsAddModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
             <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
             >
               <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
                 <h3 className="text-lg font-bold text-slate-900">Add New Course</h3>
@@ -281,7 +344,127 @@ export function CourseList() {
             </motion.div>
           </div>
         )}
+
+        {/* Edit Course Modal */}
+        {isEditModalOpen && editingCourse && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsEditModalOpen(false)}
+              className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-slate-900">Edit Course</h3>
+                <button
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+              <form onSubmit={handleUpdateCourse} className="p-6 space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Course Name</label>
+                  <input
+                    required
+                    type="text"
+                    value={editingCourse.name}
+                    onChange={e => setEditingCourse({ ...editingCourse, name: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-xs font-semibold text-slate-500 uppercase">Department</label>
+                  <input
+                    required
+                    type="text"
+                    value={editingCourse.department}
+                    onChange={e => setEditingCourse({ ...editingCourse, department: e.target.value })}
+                    className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Course Code</label>
+                    <input
+                      required
+                      type="text"
+                      value={editingCourse.code}
+                      onChange={e => setEditingCourse({ ...editingCourse, code: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Total Sessions</label>
+                    <input
+                      required
+                      type="number"
+                      min="1"
+                      value={editingCourse.totalSessions}
+                      onChange={e => setEditingCourse({ ...editingCourse, totalSessions: parseInt(e.target.value) || 0 })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Instructor</label>
+                    <input
+                      required
+                      type="text"
+                      value={editingCourse.instructor}
+                      onChange={e => setEditingCourse({ ...editingCourse, instructor: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-semibold text-slate-500 uppercase">Schedule</label>
+                    <input
+                      required
+                      type="text"
+                      value={editingCourse.schedule}
+                      onChange={e => setEditingCourse({ ...editingCourse, schedule: e.target.value })}
+                      className="w-full rounded-xl border border-slate-200 px-4 py-2.5 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-100 outline-none transition-all"
+                    />
+                  </div>
+                </div>
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditModalOpen(false)}
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-sm font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 px-4 py-2.5 rounded-xl bg-primary-600 text-sm font-semibold text-white shadow-lg shadow-primary-200 hover:bg-primary-700 transition-all"
+                  >
+                    Save Changes
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
       </AnimatePresence>
+
+      <ConfirmDialog
+        isOpen={isDeleteOpen}
+        onClose={() => setIsDeleteOpen(false)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Course"
+        message="Are you sure you want to delete this course? This will also remove all associated attendance records. This action cannot be undone."
+        confirmLabel="Delete Course"
+      />
     </div>
   );
 }

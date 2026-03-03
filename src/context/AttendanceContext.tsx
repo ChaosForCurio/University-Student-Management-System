@@ -24,8 +24,10 @@ interface AttendanceContextType {
   navigateToStudent: (studentId: string) => void;
   addStudent: (student: Omit<Student, 'id' | 'avatar' | 'enrolledCourses'>) => Promise<void>;
   deleteStudent: (studentId: string) => Promise<void>;
+  updateStudent: (student: Student) => Promise<void>;
   addCourse: (course: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => Promise<void>;
   deleteCourse: (courseId: string) => Promise<void>;
+  updateCourse: (course: Course) => Promise<void>;
   enrollStudentInCourse: (studentId: string, courseId: string) => Promise<void>;
   unenrollStudentFromCourse: (studentId: string, courseId: string) => Promise<void>;
   refreshData: () => Promise<void>;
@@ -62,7 +64,8 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       setRecords(dbRecords);
     } catch (err) {
       console.error('Failed to fetch data from Neon DB:', err);
-      setError('Failed to load data from the database. Please check your connection.');
+      const msg = err instanceof Error ? err.message : 'Failed to load data from the database. Please check your connection.';
+      setError(msg);
     } finally {
       setIsLoading(false);
     }
@@ -134,6 +137,18 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const updateStudent = useCallback(async (updatedStudent: Student) => {
+    try {
+      await dbService.updateStudent(updatedStudent);
+      setStudents(prev => prev.map(s => s.id === updatedStudent.id ? updatedStudent : s));
+      toast.success('Student updated successfully');
+    } catch (err) {
+      console.error('Failed to update student:', err);
+      setError('Failed to update student in the database.');
+      toast.error('Failed to update student.');
+    }
+  }, []);
+
   const addCourse = useCallback(async (newCourse: Omit<Course, 'id' | 'enrolledStudents' | 'color'>) => {
     // Find matching students for auto-enrollment
     const matchingStudents = students.filter(
@@ -189,6 +204,18 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       console.error('Failed to delete course:', err);
       setError('Failed to delete course from the database.');
       toast.error('Failed to delete course.');
+    }
+  }, []);
+
+  const updateCourse = useCallback(async (updatedCourse: Course) => {
+    try {
+      await dbService.updateCourse(updatedCourse);
+      setCourses(prev => prev.map(c => c.id === updatedCourse.id ? updatedCourse : c));
+      toast.success('Course updated successfully');
+    } catch (err) {
+      console.error('Failed to update course:', err);
+      setError('Failed to update course in the database.');
+      toast.error('Failed to update course.');
     }
   }, []);
 
@@ -337,8 +364,10 @@ export function AttendanceProvider({ children }: { children: ReactNode }) {
       navigateToStudent,
       addStudent,
       deleteStudent,
+      updateStudent,
       addCourse,
       deleteCourse,
+      updateCourse,
       enrollStudentInCourse,
       unenrollStudentFromCourse,
       refreshData,

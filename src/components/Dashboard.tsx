@@ -31,38 +31,6 @@ import { Skeleton } from '@/components/ui/Skeleton';
 export function Dashboard() {
   const { students, courses, records, getCourseAttendanceRate, navigateToStudent, isLoading } = useAttendance();
 
-  if (isLoading) {
-    return (
-      <div className="space-y-6 animate-fade-in">
-        {/* Header Skeleton */}
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-
-        {/* Stats Grid Skeleton */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[1, 2, 3, 4].map(i => (
-            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
-          ))}
-        </div>
-
-        {/* Today's Quick Stats Skeleton */}
-        <div className="grid grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
-          ))}
-        </div>
-
-        {/* Charts Row Skeleton */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Skeleton className="lg:col-span-2 h-72 rounded-2xl" />
-          <Skeleton className="h-72 rounded-2xl" />
-        </div>
-      </div>
-    );
-  }
-
   const {
     todayPresent,
     todayAbsent,
@@ -71,6 +39,7 @@ export function Dashboard() {
     courseRates,
     statusData,
     lowAttendance,
+    lowAttendanceCount,
     stats
   } = useMemo(() => {
     const today = format(new Date(), 'yyyy-MM-dd');
@@ -118,14 +87,18 @@ export function Dashboard() {
     const avgAttendanceVal = Math.round((allPresent / (records.length || 1)) * 100);
 
     // Low attendance students
-    const studentAttendance = students.map(s => {
+    // Low attendance students
+    const studentAttendance = students.map((s: any) => {
       const sRecords = records.filter(r => r.studentId === s.id);
       const present = sRecords.filter(r => r.status === 'present' || r.status === 'late').length;
       const rate = sRecords.length > 0 ? Math.round((present / sRecords.length) * 100) : 0;
       return { ...s, rate, totalRecords: sRecords.length };
-    }).sort((a, b) => a.rate - b.rate);
+    }).sort((a: any, b: any) => a.rate - b.rate);
 
-    const lAttendance = studentAttendance.filter(s => s.rate < 75).slice(0, 5);
+    // Filter for those actually below threshold (considering only those with records)
+    const allLowAttendance = studentAttendance.filter((s: any) => s.totalRecords > 0 && s.rate < 75);
+    const lAttendanceCount = allLowAttendance.length;
+    const lAttendance = allLowAttendance.slice(0, 5);
 
     const statsArr = [
       {
@@ -178,9 +151,42 @@ export function Dashboard() {
       courseRates: cRates,
       statusData: sData,
       lowAttendance: lAttendance,
+      lowAttendanceCount: lAttendanceCount,
       stats: statsArr
     };
   }, [students, courses, records, getCourseAttendanceRate]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 animate-fade-in">
+        {/* Header Skeleton */}
+        <div>
+          <Skeleton className="h-8 w-48 mb-2" />
+          <Skeleton className="h-4 w-72" />
+        </div>
+
+        {/* Stats Grid Skeleton */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          {[1, 2, 3, 4].map(i => (
+            <Skeleton key={i} className="h-32 w-full rounded-2xl" />
+          ))}
+        </div>
+
+        {/* Today's Quick Stats Skeleton */}
+        <div className="grid grid-cols-3 gap-4">
+          {[1, 2, 3].map(i => (
+            <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+          ))}
+        </div>
+
+        {/* Charts Row Skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <Skeleton className="lg:col-span-2 h-72 rounded-2xl" />
+          <Skeleton className="h-72 rounded-2xl" />
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -346,11 +352,11 @@ export function Dashboard() {
         </div>
 
         {/* Low Attendance Alert */}
-        <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm">
+        <div className="rounded-2xl bg-white p-5 border border-slate-100 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-slate-900">⚠️ Low Attendance Students</h3>
             <span className="text-xs text-red-500 font-medium bg-red-50 px-2.5 py-1 rounded-full">
-              {lowAttendance.length} students below 75%
+              {lowAttendanceCount} students below 75%
             </span>
           </div>
           <div className="space-y-3">
@@ -380,9 +386,23 @@ export function Dashboard() {
                 </div>
               </button>
             ))}
+            {lowAttendanceCount > 5 && (
+              <button
+                onClick={() => (window.location.hash = '#/students')}
+                className="w-full text-center py-2 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors mt-2"
+              >
+                View all {lowAttendanceCount} students
+              </button>
+            )}
             {lowAttendance.length === 0 && (
-              <div className="text-center py-8 text-slate-400 text-sm">
-                🎉 All students have attendance above 75%!
+              <div className="flex flex-col items-center justify-center py-10">
+                <div className="h-12 w-12 rounded-full bg-emerald-50 flex items-center justify-center mb-3">
+                  <UserCheck className="h-6 w-6 text-emerald-500" />
+                </div>
+                <p className="text-sm font-medium text-slate-900">Great job!</p>
+                <p className="text-xs text-slate-400 text-center mt-1">
+                  All students have attendance above 75%.
+                </p>
               </div>
             )}
           </div>

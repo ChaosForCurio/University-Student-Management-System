@@ -125,9 +125,9 @@ export function AttendanceReport() {
         </div>
         <button
           onClick={handleExport}
-          className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-xl bg-primary-600 px-4 py-2.5 text-xs font-semibold text-white hover:bg-primary-700 transition-colors shadow-sm shadow-primary-200"
+          className="flex items-center gap-2 w-full sm:w-auto justify-center rounded-xl bg-white border border-slate-200 px-4 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-all shadow-sm active:scale-[0.98]"
         >
-          <Download className="h-4 w-4" />
+          <Download className="h-4 w-4 text-primary-600" />
           Export CSV
         </button>
       </div>
@@ -184,17 +184,21 @@ export function AttendanceReport() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {[
-          { label: 'Total Records', value: summary.total, color: 'text-slate-900', fullWidth: true },
-          { label: 'Present', value: summary.present, color: 'text-emerald-600' },
-          { label: 'Absent', value: summary.absent, color: 'text-red-600' },
-          { label: 'Late', value: summary.late, color: 'text-amber-600' },
-          { label: 'Rate', value: `${summary.rate}%`, color: summary.rate >= 75 ? 'text-emerald-600' : 'text-red-600' },
+          { label: 'Total Records', value: summary.total, color: 'text-slate-900', bgColor: 'bg-slate-50', icon: BarChart3, iconColor: 'text-slate-500' },
+          { label: 'Present', value: summary.present, color: 'text-emerald-600', bgColor: 'bg-emerald-50/50', icon: BarChartIcon, iconColor: 'text-emerald-500' },
+          { label: 'Absent', value: summary.absent, color: 'text-red-600', bgColor: 'bg-red-50/50', icon: BarChartIcon, iconColor: 'text-red-500' },
+          { label: 'Late', value: summary.late, color: 'text-amber-600', bgColor: 'bg-amber-50/50', icon: BarChartIcon, iconColor: 'text-amber-500' },
+          { label: 'Rate', value: `${summary.rate}%`, color: summary.rate >= 75 ? 'text-primary-600' : 'text-red-600', bgColor: 'bg-primary-50/50', icon: BarChart3, iconColor: 'text-primary-500' },
         ].map(s => (
-          <div key={s.label} className={`rounded-xl bg-white border border-slate-100 p-4 shadow-sm text-center ${s.fullWidth ? 'col-span-2 lg:col-span-1' : ''}`}>
-            <p className={`text-xl font-bold ${s.color}`}>{s.value}</p>
-            <p className="text-[10px] text-slate-400 uppercase tracking-wider mt-0.5">{s.label}</p>
+          <div key={s.label} className="group relative overflow-hidden rounded-2xl bg-white border border-slate-100 p-5 shadow-sm transition-all hover:shadow-md hover:border-primary-100">
+            <div className={`absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity`}>
+              <s.icon className={`h-12 w-12 ${s.iconColor}`} />
+            </div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.1em] mb-1">{s.label}</p>
+            <p className={`text-2xl font-black ${s.color}`}>{s.value}</p>
+            <div className={`mt-3 h-1 w-8 rounded-full ${s.bgColor.replace('/50', '')}`} />
           </div>
         ))}
       </div>
@@ -210,28 +214,58 @@ export function AttendanceReport() {
       ) : (
         viewMode === 'chart' ? (
           /* Chart View */
-          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-5">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">Daily Attendance Breakdown</h3>
-            <div className="h-72">
+          <div className="rounded-2xl bg-white border border-slate-100 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-bold text-slate-900 uppercase tracking-tight flex items-center gap-2">
+                <div className="h-4 w-1 bg-primary-600 rounded-full" />
+                Daily Attendance Breakdown
+              </h3>
+            </div>
+            <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-                  <XAxis dataKey="date" tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <YAxis tick={{ fontSize: 10, fill: '#94a3b8' }} axisLine={false} tickLine={false} />
-                  <Tooltip
-                    contentStyle={{
-                      background: 'white',
-                      border: '1px solid #e2e8f0',
-                      borderRadius: '12px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                      fontSize: '12px',
-                    }}
+                <BarChart data={dailyData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="presentGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#22c55e" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#22c55e" stopOpacity={0.2} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                  <XAxis
+                    dataKey="date"
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                    dy={10}
                   />
-                  <Legend wrapperStyle={{ fontSize: '11px' }} />
-                  <Bar dataKey="Present" fill="#22c55e" radius={[2, 2, 0, 0]} stackId="a" />
-                  <Bar dataKey="Late" fill="#f59e0b" radius={[0, 0, 0, 0]} stackId="a" />
-                  <Bar dataKey="Excused" fill="#3b82f6" radius={[0, 0, 0, 0]} stackId="a" />
-                  <Bar dataKey="Absent" fill="#ef4444" radius={[2, 2, 0, 0]} stackId="a" />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: '#94a3b8', fontWeight: 500 }}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{
+                      background: 'rgba(255, 255, 255, 0.9)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '16px',
+                      boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                      fontSize: '12px',
+                      padding: '12px',
+                    }}
+                    itemStyle={{ fontWeight: 600 }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    wrapperStyle={{ fontSize: '11px', fontWeight: 600, paddingBottom: '20px' }}
+                    iconType="circle"
+                  />
+                  <Bar dataKey="Present" fill="#22c55e" radius={[4, 4, 0, 0]} stackId="a" barSize={32} />
+                  <Bar dataKey="Late" fill="#f59e0b" radius={[0, 0, 0, 0]} stackId="a" barSize={32} />
+                  <Bar dataKey="Excused" fill="#3b82f6" radius={[0, 0, 0, 0]} stackId="a" barSize={32} />
+                  <Bar dataKey="Absent" fill="#ef4444" radius={[4, 4, 0, 0]} stackId="a" barSize={32} />
                 </BarChart>
               </ResponsiveContainer>
             </div>

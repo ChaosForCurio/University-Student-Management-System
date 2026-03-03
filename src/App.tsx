@@ -142,10 +142,14 @@ function AppLayout() {
   );
 }
 
+import { ErrorBoundary } from '@/components/ErrorBoundary';
+
 export function App() {
   return (
-    <AttendanceProvider>
-      <AppLayout />
-    </AttendanceProvider>
+    <ErrorBoundary>
+      <AttendanceProvider>
+        <AppLayout />
+      </AttendanceProvider>
+    </ErrorBoundary>
   );
 }

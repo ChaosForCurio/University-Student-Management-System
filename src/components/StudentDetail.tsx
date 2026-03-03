@@ -136,7 +136,11 @@ export function StudentDetail() {
               className="flex h-20 w-20 items-center justify-center rounded-2xl text-white text-2xl font-bold border-4 border-white shadow-lg"
               style={{ background: avatarColor }}
             >
-              {student.avatar}
+              {typeof student.avatar === 'string' && student.avatar.startsWith('http') ? (
+                <img src={student.avatar} alt={student.name} className="h-full w-full rounded-2xl object-cover" />
+              ) : (
+                student.avatar || student.name.charAt(0)
+              )}
             </div>
             <div className="flex-1 pb-1">
               <h1 className="text-xl font-bold text-slate-900">{student.name}</h1>

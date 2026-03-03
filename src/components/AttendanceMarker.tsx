@@ -4,6 +4,7 @@ import { AttendanceRecord } from '@/types';
 import { format } from 'date-fns';
 import { Check, X, Clock, Shield, UserCheck, Save, RotateCcw, Search } from 'lucide-react';
 import { avatarColors } from '@/constants/ui';
+import { toast } from 'react-hot-toast';
 
 type Status = AttendanceRecord['status'];
 
@@ -68,11 +69,16 @@ export function AttendanceMarker() {
     setSaved(false);
   }, [courseStudents]);
 
-  const handleSave = useCallback(() => {
+  const handleSave = useCallback(async () => {
     if (!selectedCourse) return;
-    bulkMarkAttendance(selectedCourse.id, date, attendanceMap);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    try {
+      await bulkMarkAttendance(selectedCourse.id, date, attendanceMap);
+      setSaved(true);
+      toast.success(`Attendance for ${selectedCourse.code} saved!`);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (error) {
+      toast.error('Failed to save attendance');
+    }
   }, [selectedCourse, bulkMarkAttendance, date, attendanceMap]);
 
   if (isLoading) {
@@ -196,7 +202,11 @@ export function AttendanceMarker() {
                         className="flex h-9 w-9 items-center justify-center rounded-full text-white text-xs font-bold shrink-0"
                         style={{ background: color }}
                       >
-                        {student.avatar}
+                        {typeof student.avatar === 'string' && student.avatar.startsWith('http') ? (
+                          <img src={student.avatar} alt={student.name} className="h-full w-full rounded-full object-cover" />
+                        ) : (
+                          student.avatar || student.name.charAt(0)
+                        )}
                       </div>
                       <div>
                         <p className="text-sm font-medium text-slate-900">{student.name}</p>

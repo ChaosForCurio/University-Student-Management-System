@@ -1,10 +1,11 @@
 import { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAttendance } from '@/context/AttendanceContext';
 import { Search, Filter, ChevronDown, Eye, Plus, Trash2, X, Users } from 'lucide-react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { avatarColors } from '@/constants/ui';
 import { Skeleton } from '@/components/ui/Skeleton';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { toast } from 'react-hot-toast';
 
 export function StudentList() {
   const { students, getAttendanceRate, navigateToStudent, addStudent, deleteStudent, isLoading } = useAttendance();
@@ -48,11 +49,16 @@ export function StudentList() {
     return result;
   }, [students, search, deptFilter, sortBy, getAttendanceRate]);
 
-  const handleAddStudent = useCallback((e: React.FormEvent) => {
+  const handleAddStudent = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    addStudent(newStudent);
-    setIsAddModalOpen(false);
-    setNewStudent({ name: '', email: '', studentId: '', department: '', semester: 1 });
+    try {
+      await addStudent(newStudent);
+      setIsAddModalOpen(false);
+      setNewStudent({ name: '', email: '', studentId: '', department: '', semester: 1 });
+      toast.success(`${newStudent.name} added successfully!`);
+    } catch (error) {
+      toast.error('Failed to add student');
+    }
   }, [addStudent, newStudent]);
 
   if (isLoading) {
@@ -175,7 +181,11 @@ export function StudentList() {
                           className="flex h-9 w-9 items-center justify-center rounded-full text-white text-xs font-bold shrink-0"
                           style={{ background: color }}
                         >
-                          {student.avatar}
+                          {typeof student.avatar === 'string' && student.avatar.startsWith('http') ? (
+                            <img src={student.avatar} alt={student.name} className="h-full w-full rounded-full object-cover" />
+                          ) : (
+                            student.avatar || student.name.charAt(0)
+                          )}
                         </div>
                         <div>
                           <p className="text-sm font-medium text-slate-900">{student.name}</p>
@@ -219,9 +229,14 @@ export function StudentList() {
                           View
                         </button>
                         <button
-                          onClick={() => {
+                          onClick={async () => {
                             if (window.confirm('Are you sure you want to delete this student?')) {
-                              deleteStudent(student.id);
+                              try {
+                                await deleteStudent(student.id);
+                                toast.success('Student deleted');
+                              } catch (error) {
+                                toast.error('Failed to delete student');
+                              }
                             }
                           }}
                           className="flex items-center justify-center h-8 w-8 rounded-lg bg-red-50 text-red-500 hover:bg-red-100 transition-colors"
